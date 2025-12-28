@@ -45,20 +45,12 @@ public class ModPacketHandler {
         registrar.playToClient(SyncTaijutsu.TYPE, SyncTaijutsu.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncSpeed.TYPE, SyncSpeed.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncChakraControl.TYPE, SyncChakraControl.STREAM_CODEC, (payload, context) -> payload.handle(context));
-        
-        // Jutsu Wheel packets
-        registrar.playToClient(SyncJutsuWheel.TYPE, SyncJutsuWheel.STREAM_CODEC, (payload, context) -> payload.handle(context));
 
         //Serverbound packets
         registrar.playToServer(ToggleSwordAbility.TYPE, ToggleSwordAbility.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(RechargeChakra.TYPE, RechargeChakra.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncNarutoRun.TYPE, SyncNarutoRun.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(ToggleChakraControl.TYPE, ToggleChakraControl.STREAM_CODEC, (payload, context) -> payload.handle(context));
-        
-        // Jutsu casting packets
-        registrar.playToServer(CastJutsuPacket.TYPE, CastJutsuPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
-        registrar.playToServer(SelectJutsuSlotPacket.TYPE, SelectJutsuSlotPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
-        registrar.playToServer(AssignJutsuSlotPacket.TYPE, AssignJutsuSlotPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
         
         // Jutsu Storage packets
         registrar.playToClient(SyncJutsuStorage.TYPE, SyncJutsuStorage.STREAM_CODEC, (payload, context) -> payload.handle(context));

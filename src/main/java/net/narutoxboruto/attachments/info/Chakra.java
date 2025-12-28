@@ -32,10 +32,9 @@ public class Chakra {
     }
 
     public void subValue(int sub, ServerPlayer serverPlayer) {
-        if (!serverPlayer.getAbilities().instabuild) {
-            this.value = Math.max(this.value - sub, 0);
-            this.syncValue(serverPlayer);
-        }
+        // Chakra is consumed in all game modes including creative
+        this.value = Math.max(this.value - sub, 0);
+        this.syncValue(serverPlayer);
     }
 
     public void setValue(int value) {

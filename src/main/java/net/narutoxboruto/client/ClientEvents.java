@@ -8,7 +8,6 @@ import net.narutoxboruto.client.gui.ShinobiStatsGui;
 import net.narutoxboruto.items.swords.AbstractAbilitySword;
 import net.narutoxboruto.main.Main;
 import net.narutoxboruto.networking.ModPacketHandler;
-import net.narutoxboruto.networking.jutsu.CastJutsuPacket;
 import net.narutoxboruto.networking.jutsu.OpenJutsuStoragePacket;
 import net.narutoxboruto.networking.misc.RechargeChakra;
 import net.narutoxboruto.networking.misc.ToggleChakraControl;
@@ -47,7 +46,7 @@ public class ClientEvents {
     @SubscribeEvent
     public static void jutsuStorageKeybind(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen == null && ModKeyBinds.JUTSU_WHEEL.consumeClick()) {
+        if (minecraft.screen == null && ModKeyBinds.JUTSU_STORAGE.consumeClick()) {
             // Send packet to server to open jutsu storage
             ModPacketHandler.sendToServer(new OpenJutsuStoragePacket());
         }
@@ -90,27 +89,6 @@ public class ClientEvents {
         }
     }
     
-    /**
-     * Client-side handler for RightClickEmpty - fires when player right-clicks with empty hand at air.
-     * This event only fires on the client, so we need to send a packet to the server.
-     */
-    @EventBusSubscriber(modid = Main.MOD_ID, value = Dist.CLIENT)
-    public static class ClientGameBusEvents {
-        @SubscribeEvent
-        public static void onRightClickEmpty(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickEmpty event) {
-            LocalPlayer player = Minecraft.getInstance().player;
-            if (player == null) return;
-            
-            // Check if main hand is empty
-            ItemStack mainHand = player.getItemInHand(InteractionHand.MAIN_HAND);
-            if (!mainHand.isEmpty()) return;
-            
-            // Send packet to server to try casting jutsu
-            // The server will validate chakra control, chakra amount, cooldowns, etc.
-            ModPacketHandler.sendToServer(new CastJutsuPacket());
-        }
-    }
-
     @EventBusSubscriber(modid = Main.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
     public static class ClientModBusEvents {
 
@@ -120,7 +98,7 @@ public class ClientEvents {
             event.register(ModKeyBinds.CHAKRA_RECHARGE);
             event.register(ModKeyBinds.OPEN_GUI);
             event.register(ModKeyBinds.CHAKRA_CONTROL);
-            event.register(ModKeyBinds.JUTSU_WHEEL);
+            event.register(ModKeyBinds.JUTSU_STORAGE);
         }
     }
 

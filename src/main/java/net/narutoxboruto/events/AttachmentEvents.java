@@ -7,7 +7,6 @@ import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.info.*;
 import net.narutoxboruto.attachments.jutsus.JutsuStorage;
 import net.narutoxboruto.items.jutsus.AbstractJutsuItem;
-import net.narutoxboruto.jutsu.JutsuWheel;
 import net.narutoxboruto.main.Main;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
@@ -45,11 +44,8 @@ public class AttachmentEvents {
             serverPlayer.getData(MainAttachment.SUMMONING).syncValue(serverPlayer);
             serverPlayer.getData(MainAttachment.TAIJUTSU).syncValue(serverPlayer);
             
-            // Auto-populate and sync jutsu wheel based on player's releases
-            JutsuWheel wheel = serverPlayer.getData(MainAttachment.JUTSU_WHEEL);
-            ReleaseList releases = serverPlayer.getData(MainAttachment.RELEASE_LIST);
-            wheel.autoPopulate(releases.getValue());
-            wheel.syncValue(serverPlayer);
+            // Sync jutsu storage
+            serverPlayer.getData(MainAttachment.JUTSU_STORAGE).syncToClient(serverPlayer);
         }
     }
 
@@ -88,11 +84,8 @@ public class AttachmentEvents {
             // serverPlayer.getData(MainAttachment.YANGLIST).syncValue(serverPlayer);
             // serverPlayer.getData(MainAttachment.YINGLIST).syncValue(serverPlayer);
             
-            // Auto-populate and sync jutsu wheel
-            JutsuWheel wheel = serverPlayer.getData(MainAttachment.JUTSU_WHEEL);
-            ReleaseList releases = serverPlayer.getData(MainAttachment.RELEASE_LIST);
-            wheel.autoPopulate(releases.getValue());
-            wheel.syncValue(serverPlayer);
+            // Sync jutsu storage
+            serverPlayer.getData(MainAttachment.JUTSU_STORAGE).syncToClient(serverPlayer);
         }
     }
 

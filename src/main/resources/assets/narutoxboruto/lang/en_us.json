@@ -67,16 +67,11 @@
   "key.narutoxboruto.chakra_recharge": "Chakra Recharge",
   "key.narutoxboruto.open_gui": "Stats Gui",
   "key.narutoxboruto.special_action": "Special Action",
-  "key.narutoxboruto.jutsu_wheel": "Jutsu Wheel",
+  "key.narutoxboruto.jutsu_storage": "Jutsu Storage",
 
   "gui.narutoxboruto.shinobi_stats": "Shinobi Stats",
-  "gui.narutoxboruto.jutsu_wheel": "Jutsu Wheel",
-  "gui.jutsu_wheel.empty_slot": "Empty Slot",
-  "gui.jutsu_wheel.instructions": "Left-click to select | Press 1-8 for quick select",
+  "gui.narutoxboruto.jutsu_storage": "Jutsu Storage",
   
-  "msg.no_jutsu_selected": "No jutsu selected! Press Z to open the jutsu wheel.",
-  "msg.not_channeling": "You must channel chakra first! (Press C)",
-  "msg.unknown_jutsu": "Unknown jutsu!",
   "msg.jutsu_cooldown": "Jutsu is on cooldown!",
   "msg.no_ground": "Must target solid ground!",
   "shinobiStat.taijutsu": "Taijutsu",

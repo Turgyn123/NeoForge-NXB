@@ -11,7 +11,7 @@ public class ModKeyBinds {
     public static final String KEY_CHAKRA_CONTROL = "key.narutoxboruto.chakra_control";
     public static final String KEY_SPECIAL_ACTION = "key.narutoxboruto.special_action";
     public static final String KEY_CHAKRA_RECHARGE = "key.narutoxboruto.chakra_recharge";
-    public static final String KEY_JUTSU_WHEEL = "key.narutoxboruto.jutsu_wheel";
+    public static final String KEY_JUTSU_STORAGE = "key.narutoxboruto.jutsu_storage";
 
 
     public static final KeyMapping OPEN_GUI = new KeyMapping(KEY_OPEN_GUI, KeyConflictContext.IN_GAME,
@@ -26,6 +26,6 @@ public class ModKeyBinds {
     public static final KeyMapping CHAKRA_CONTROL = new KeyMapping(KEY_CHAKRA_CONTROL, KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_C, KEY_CATEGORY);
     
-    public static final KeyMapping JUTSU_WHEEL = new KeyMapping(KEY_JUTSU_WHEEL, KeyConflictContext.IN_GAME,
+    public static final KeyMapping JUTSU_STORAGE = new KeyMapping(KEY_JUTSU_STORAGE, KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Z, KEY_CATEGORY);
 }

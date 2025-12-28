@@ -16,7 +16,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.info.ReleaseList;
-import net.narutoxboruto.jutsu.JutsuWheel;
 import net.narutoxboruto.util.JutsuGrantHelper;
 import net.narutoxboruto.util.ModUtil;
 
@@ -34,11 +33,6 @@ public class ReleaseDnaBottleItem extends Item {
         if (!releaseList.getValue().contains(natureType)) {
             if (serverPlayer.getAbilities().instabuild || serverPlayer.getRandom().nextInt(3) == 0) {
                 releaseList.concatList(natureType, serverPlayer);
-                
-                // Auto-populate jutsu wheel with jutsus for the new nature
-                JutsuWheel wheel = serverPlayer.getData(MainAttachment.JUTSU_WHEEL);
-                wheel.autoPopulate(releaseList.getValue());
-                wheel.syncValue(serverPlayer);
                 
                 // Grant corresponding jutsu item to player's jutsu storage
                 JutsuGrantHelper.grantJutsuForRelease(serverPlayer, natureType);
