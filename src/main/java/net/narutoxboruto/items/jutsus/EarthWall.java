@@ -22,7 +22,7 @@ import static net.narutoxboruto.util.BlockUtils.*;
  * Earth Wall Jutsu - Creates a 7x3x2 wall of earth blocks in front of the player.
  * Requires Earth release affinity.
  */
-public class EarthWall extends AbstractNatureReleaseItem {
+public class EarthWall extends AbstractJutsuItem {
 
     // Wall dimensions
     private static final int WALL_WIDTH = 7;   // 7 blocks wide
@@ -34,27 +34,27 @@ public class EarthWall extends AbstractNatureReleaseItem {
     }
 
     @Override
-    public String getSelectedJutsu(ServerPlayer serverPlayer) {
-        return "earth_wall";
+    public String getJutsuName() {
+        return "Earth Wall";
     }
 
     @Override
-    protected String getRequiredRelease() {
+    public String getRequiredRelease() {
         return "earth";
     }
 
     @Override
-    protected int getJutsuChakraCost(ServerPlayer serverPlayer) {
-        return 15;
+    public int getChakraCost() {
+        return 5;
     }
 
     @Override
-    protected int getCooldownTicks() {
+    public int getCooldownTicks() {
         return 100; // 5 seconds cooldown
     }
 
     @Override
-    protected boolean castJutsu(ServerPlayer serverPlayer, Level level) {
+    protected boolean executeJutsu(ServerPlayer serverPlayer, Level level) {
         // Get the block the player is looking at
         BlockPos targetBlock = getBlockPlayerIsLookingAt(serverPlayer, 10);
 
@@ -91,6 +91,7 @@ public class EarthWall extends AbstractNatureReleaseItem {
 
     /**
      * Build the earth wall based on player facing direction.
+     * Uses blocks from underground - matching the block type beneath each wall position.
      */
     private void buildWall(Level level, BlockPos origin, Direction facing) {
         int halfWidth = WALL_WIDTH / 2;
@@ -100,13 +101,23 @@ public class EarthWall extends AbstractNatureReleaseItem {
                 for (int depth = 0; depth < WALL_DEPTH; depth++) {
                     BlockPos wallPos = calculateWallBlockPos(origin, facing, width, height, depth);
 
-                    if (canPlaceWallBlock(level, wallPos, height)) {
-                        BlockState blockToPlace = getWallBlockState(level, origin);
+                    if (canPlaceWallBlock(level, wallPos)) {
+                        // Get the ground position directly below this wall block
+                        BlockPos groundPos = getGroundBelowWallPos(wallPos, origin, height);
+                        BlockState blockToPlace = getWallBlockState(level, groundPos, origin);
                         level.setBlock(wallPos, blockToPlace, 3);
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Get the ground position below where the wall block will be placed.
+     */
+    private BlockPos getGroundBelowWallPos(BlockPos wallPos, BlockPos origin, int height) {
+        // The ground is at the wall's X/Z but at the origin's Y level (or below)
+        return new BlockPos(wallPos.getX(), origin.getY(), wallPos.getZ());
     }
 
     /**
@@ -124,32 +135,133 @@ public class EarthWall extends AbstractNatureReleaseItem {
 
     /**
      * Check if we can place a wall block at this position.
+     * Allows replacing air, grass, plants, and other replaceable blocks.
      */
-    private boolean canPlaceWallBlock(Level level, BlockPos pos, int height) {
-        // Must be air or replaceable
-        if (!isAir(level, pos) && !level.getBlockState(pos).canBeReplaced()) {
-            return false;
+    private boolean canPlaceWallBlock(Level level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        // Allow placing if air
+        if (state.isAir()) {
+            return true;
+        }
+        // Allow replacing grass, tall grass, flowers, etc.
+        if (isReplaceable(state)) {
+            return true;
         }
         // Don't place if there's a block entity
         if (isBlockEntity(level, pos)) {
             return false;
         }
-        return true;
+        // Allow if the block is replaceable
+        return state.canBeReplaced();
     }
 
     /**
-     * Get the block state to use for the wall (copies from ground or uses cobblestone).
+     * Check if a block is a plant/grass type that should be replaced.
      */
-    private BlockState getWallBlockState(Level level, BlockPos origin) {
-        BlockState groundState = level.getBlockState(origin);
+    private boolean isReplaceable(BlockState state) {
+        return state.is(Blocks.SHORT_GRASS) ||
+               state.is(Blocks.TALL_GRASS) ||
+               state.is(Blocks.FERN) ||
+               state.is(Blocks.LARGE_FERN) ||
+               state.is(Blocks.DEAD_BUSH) ||
+               state.is(Blocks.SEAGRASS) ||
+               state.is(Blocks.TALL_SEAGRASS) ||
+               state.is(Blocks.VINE) ||
+               state.is(Blocks.SNOW) ||
+               state.is(Blocks.DANDELION) ||
+               state.is(Blocks.POPPY) ||
+               state.is(Blocks.BLUE_ORCHID) ||
+               state.is(Blocks.ALLIUM) ||
+               state.is(Blocks.AZURE_BLUET) ||
+               state.is(Blocks.OXEYE_DAISY) ||
+               state.is(Blocks.CORNFLOWER) ||
+               state.is(Blocks.LILY_OF_THE_VALLEY);
+    }
 
-        // If it's an ore or special block, use cobblestone instead
-        if (isOre(level, origin) || groundState.getDestroySpeed(level, origin) < 0) {
+    /**
+     * Get the block state to use for the wall.
+     * Uses the block from underground at the given position, but ONLY if it's an earth/stone type.
+     * If underground is air or non-earth block (wood, leaves, etc.), uses dirt.
+     */
+    private BlockState getWallBlockState(Level level, BlockPos groundPos, BlockPos fallbackOrigin) {
+        BlockState groundState = level.getBlockState(groundPos);
+
+        // If ground is air, search downward for a solid earth block
+        if (groundState.isAir()) {
+            BlockPos searchPos = groundPos.below();
+            for (int i = 0; i < 5; i++) {
+                BlockState belowState = level.getBlockState(searchPos);
+                if (!belowState.isAir() && isSolidEarthBlock(belowState)) {
+                    groundState = belowState;
+                    break;
+                }
+                searchPos = searchPos.below();
+            }
+            // If still air, check the fallback origin
+            if (groundState.isAir()) {
+                BlockState fallbackState = level.getBlockState(fallbackOrigin);
+                if (isSolidEarthBlock(fallbackState)) {
+                    groundState = fallbackState;
+                } else {
+                    // Fallback is not an earth block, use dirt
+                    return Blocks.DIRT.defaultBlockState();
+                }
+            }
+        }
+
+        // If it's grass block, use dirt instead (grass won't grow in a wall)
+        if (groundState.is(Blocks.GRASS_BLOCK) || groundState.is(Blocks.PODZOL) || groundState.is(Blocks.MYCELIUM)) {
+            return Blocks.DIRT.defaultBlockState();
+        }
+
+        // If it's an ore, use cobblestone instead
+        if (isOre(level, groundPos)) {
             return Blocks.COBBLESTONE.defaultBlockState();
         }
 
-        // Use the ground block type
+        // If it's NOT an earth-type block (wood, leaves, etc.), use dirt
+        if (!isSolidEarthBlock(groundState)) {
+            return Blocks.DIRT.defaultBlockState();
+        }
+
+        // Use the ground block type (it's a valid earth block)
         return groundState;
+    }
+
+    /**
+     * Check if the block is a solid earth-type block suitable for walls.
+     */
+    private boolean isSolidEarthBlock(BlockState state) {
+        return state.is(Blocks.DIRT) ||
+               state.is(Blocks.GRASS_BLOCK) ||
+               state.is(Blocks.COARSE_DIRT) ||
+               state.is(Blocks.ROOTED_DIRT) ||
+               state.is(Blocks.PODZOL) ||
+               state.is(Blocks.MYCELIUM) ||
+               state.is(Blocks.STONE) ||
+               state.is(Blocks.COBBLESTONE) ||
+               state.is(Blocks.MOSSY_COBBLESTONE) ||
+               state.is(Blocks.GRANITE) ||
+               state.is(Blocks.DIORITE) ||
+               state.is(Blocks.ANDESITE) ||
+               state.is(Blocks.DEEPSLATE) ||
+               state.is(Blocks.COBBLED_DEEPSLATE) ||
+               state.is(Blocks.TUFF) ||
+               state.is(Blocks.CALCITE) ||
+               state.is(Blocks.DRIPSTONE_BLOCK) ||
+               state.is(Blocks.SAND) ||
+               state.is(Blocks.RED_SAND) ||
+               state.is(Blocks.GRAVEL) ||
+               state.is(Blocks.CLAY) ||
+               state.is(Blocks.TERRACOTTA) ||
+               state.is(Blocks.SANDSTONE) ||
+               state.is(Blocks.RED_SANDSTONE) ||
+               state.is(Blocks.MUD) ||
+               state.is(Blocks.PACKED_MUD) ||
+               state.is(Blocks.NETHERRACK) ||
+               state.is(Blocks.BASALT) ||
+               state.is(Blocks.BLACKSTONE) ||
+               state.is(Blocks.END_STONE);
     }
 
     /**

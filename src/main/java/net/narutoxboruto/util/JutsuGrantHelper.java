@@ -1,0 +1,83 @@
+package net.narutoxboruto.util;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.narutoxboruto.attachments.MainAttachment;
+import net.narutoxboruto.attachments.jutsus.JutsuStorage;
+import net.narutoxboruto.items.ModItems;
+
+/**
+ * Utility class for granting jutsus to players when they learn releases.
+ * Centralized logic ensures all methods of learning releases grant the appropriate jutsus.
+ */
+public class JutsuGrantHelper {
+
+    /**
+     * Grants jutsus for all releases in a comma-separated list.
+     * Use this when a player learns multiple releases at once (e.g., ChakraPaper).
+     * 
+     * @param serverPlayer The player to grant jutsus to
+     * @param releaseList Comma-separated list of releases (e.g., "fire, earth, water")
+     */
+    public static void grantJutsusForReleases(ServerPlayer serverPlayer, String releaseList) {
+        if (releaseList == null || releaseList.isEmpty()) return;
+        
+        String[] releases = releaseList.split(",");
+        for (String release : releases) {
+            grantJutsuForRelease(serverPlayer, release.trim());
+        }
+    }
+
+    /**
+     * Grants the corresponding jutsu item to the player's jutsu storage when they learn a release.
+     * 
+     * @param serverPlayer The player to grant the jutsu to
+     * @param releaseType The type of release learned (fire, earth, water, etc.)
+     */
+    public static void grantJutsuForRelease(ServerPlayer serverPlayer, String releaseType) {
+        JutsuStorage storage = serverPlayer.getData(MainAttachment.JUTSU_STORAGE);
+        ItemStack jutsuToGrant = null;
+        String jutsuName = null;
+        
+        switch (releaseType.toLowerCase()) {
+            case "fire":
+                jutsuToGrant = new ItemStack(ModItems.FIRE_BALL_JUTSU.get());
+                jutsuName = "Fire Ball";
+                break;
+            case "earth":
+                jutsuToGrant = new ItemStack(ModItems.EARTH_WALL_JUTSU.get());
+                jutsuName = "Earth Wall";
+                break;
+            // Add more releases here as jutsus are added
+            // case "water": 
+            //     jutsuToGrant = new ItemStack(ModItems.WATER_JUTSU.get()); 
+            //     jutsuName = "Water Jutsu";
+            //     break;
+            // case "lightning": 
+            //     jutsuToGrant = new ItemStack(ModItems.LIGHTNING_JUTSU.get()); 
+            //     jutsuName = "Lightning Jutsu";
+            //     break;
+            // case "wind": 
+            //     jutsuToGrant = new ItemStack(ModItems.WIND_JUTSU.get()); 
+            //     jutsuName = "Wind Jutsu";
+            //     break;
+        }
+        
+        if (jutsuToGrant != null && storage.addJutsu(jutsuToGrant)) {
+            serverPlayer.setData(MainAttachment.JUTSU_STORAGE, storage);
+            storage.syncToClient(serverPlayer);
+            
+            // Send mastery message: "You mastered _____, (Press Z)"
+            serverPlayer.sendSystemMessage(
+                Component.literal("You mastered ")
+                    .withStyle(ChatFormatting.GREEN)
+                    .append(Component.literal(jutsuName).withStyle(ChatFormatting.GOLD))
+                    .append(Component.literal(", (Press ").withStyle(ChatFormatting.GREEN))
+                    .append(Component.literal("Z").withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(")").withStyle(ChatFormatting.GREEN))
+            );
+        }
+    }
+}

@@ -32,7 +32,7 @@ public class FireBallEntity extends Projectile {
     private float rotation = 0;
     
     // Configuration
-    private static final float EXPLOSION_RADIUS = 1.5F;
+    private static final float EXPLOSION_RADIUS = 2.25F; // 1.5x larger
     private static final float FIRE_DAMAGE = 8.0F;
     private static final int FIRE_SECONDS = 5;
     private static final int MAX_LIFETIME = 100; // 5 seconds max flight time

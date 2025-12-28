@@ -22,6 +22,7 @@ import net.narutoxboruto.entities.shinobis.ZabuzaMomochi;
 import net.narutoxboruto.events.*;
 import net.narutoxboruto.items.ModItems;
 import net.narutoxboruto.items.ModTab;
+import net.narutoxboruto.menu.ModMenuTypes;
 import net.narutoxboruto.networking.ModPacketHandler;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
@@ -60,6 +61,7 @@ public class Main {
         NeoForge.EVENT_BUS.register(Events.class);
         NeoForge.EVENT_BUS.register(StatEvents.class);
         NeoForge.EVENT_BUS.register(CommandEvents.class);
+        NeoForge.EVENT_BUS.register(JutsuItemEvents.class);
         modEventBus.register(SpawnEvents.class);
         modEventBus.addListener(this::attributes);
 
@@ -70,6 +72,7 @@ public class Main {
         ModItems.register(modEventBus);
         ModEntities.register(modEventBus);
         MainAttachment.register(modEventBus);
+        ModMenuTypes.register(modEventBus);
         modEventBus.register(ModPacketHandler.class);
         NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, RenderGuiEvent.Post.class, this::onRenderGui);
         NeoForge.EVENT_BUS.register(this);

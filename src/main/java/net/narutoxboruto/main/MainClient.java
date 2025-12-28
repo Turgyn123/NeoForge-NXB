@@ -1,10 +1,12 @@
 package net.narutoxboruto.main;
 
 import net.minecraft.client.renderer.entity.EntityRenderers;
+import net.narutoxboruto.client.gui.JutsuStorageScreen;
 import net.narutoxboruto.client.model.FireBallModel;
 import net.narutoxboruto.client.renderer.entity.*;
 import net.narutoxboruto.client.renderer.shinobi.AbstractShinobiRender;
 import net.narutoxboruto.entities.ModEntities;
+import net.narutoxboruto.menu.ModMenuTypes;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -12,6 +14,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
@@ -27,6 +30,11 @@ public class MainClient {
     @SubscribeEvent
     static void onRegisterLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(FireBallModel.LAYER_LOCATION, FireBallModel::createBodyLayer);
+    }
+
+    @SubscribeEvent
+    static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
+        event.register(ModMenuTypes.JUTSU_STORAGE.get(), JutsuStorageScreen::new);
     }
 
     @SubscribeEvent

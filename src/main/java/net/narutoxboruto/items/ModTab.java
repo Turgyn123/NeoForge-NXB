@@ -88,5 +88,13 @@ public class ModTab {
                 output.accept(SUMMONING_SCROLL.get());
             }).build());
 
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> NXB_JUTSUS = CREATIVE_MODE_TAB.register("nxb_jutsus", () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.jutsus_tab"))
+            .icon(() -> FIRE_BALL_JUTSU.get().getDefaultInstance())
+            .displayItems((parameters, output) -> {
+                output.accept(FIRE_BALL_JUTSU.get());
+                output.accept(EARTH_WALL_JUTSU.get());
+            }).build());
+
     public static void register(IEventBus eventBus) {CREATIVE_MODE_TAB.register(eventBus);}
 }

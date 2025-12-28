@@ -38,10 +38,12 @@ public class AbstractAbilitySword extends SwordItem implements Vanishable {
             ItemCooldowns cooldowns = serverPlayer.getCooldowns();
             Chakra chakra = serverPlayer.getData(MainAttachment.CHAKRA);
             if (!cooldowns.isOnCooldown(pStack.getItem()) && chakra.getValue() >= getChakraCost()) {
-                doSpecialAbility(pTarget, serverPlayer);
+                // Consume chakra FIRST, then execute ability
                 chakra.subValue(getChakraCost(), serverPlayer);
+                doSpecialAbility(pTarget, serverPlayer);
+                // Only add cooldown if ability was successfully used
+                cooldowns.addCooldown(this, cooldown);
             }
-            cooldowns.addCooldown(this, cooldown);
         }
         return true;
     }

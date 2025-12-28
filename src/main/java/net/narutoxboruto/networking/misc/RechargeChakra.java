@@ -6,6 +6,8 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.info.Chakra;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -37,6 +39,9 @@ public class RechargeChakra implements CustomPacketPayload {
             // Use the data attachment system directly
             Chakra chakra = serverPlayer.getData(MainAttachment.CHAKRA);
             chakra.addValue(1, serverPlayer);
+            
+            // Apply Slowness 2 while charging chakra (lasts 10 ticks = 0.5 seconds, refreshed each tick while holding)
+            serverPlayer.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 10, 1, false, true));
         });
     }
 

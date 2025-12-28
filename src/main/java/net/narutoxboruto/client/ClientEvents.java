@@ -4,12 +4,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.narutoxboruto.client.gui.JutsuWheelScreen;
 import net.narutoxboruto.client.gui.ShinobiStatsGui;
 import net.narutoxboruto.items.swords.AbstractAbilitySword;
 import net.narutoxboruto.main.Main;
 import net.narutoxboruto.networking.ModPacketHandler;
 import net.narutoxboruto.networking.jutsu.CastJutsuPacket;
+import net.narutoxboruto.networking.jutsu.OpenJutsuStoragePacket;
 import net.narutoxboruto.networking.misc.RechargeChakra;
 import net.narutoxboruto.networking.misc.ToggleChakraControl;
 import net.narutoxboruto.networking.misc.ToggleSwordAbility;
@@ -45,10 +45,11 @@ public class ClientEvents {
     }
     
     @SubscribeEvent
-    public static void jutsuWheelKeybind(InputEvent.Key event) {
+    public static void jutsuStorageKeybind(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen == null && ModKeyBinds.JUTSU_WHEEL.consumeClick()) {
-            minecraft.setScreen(new JutsuWheelScreen());
+            // Send packet to server to open jutsu storage
+            ModPacketHandler.sendToServer(new OpenJutsuStoragePacket());
         }
     }
 
@@ -82,7 +83,8 @@ public class ClientEvents {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player != null && ModKeyBinds.CHAKRA_RECHARGE.consumeClick()){
-            if (!player.isCrouching()){
+            // Shift + C to charge chakra
+            if (player.isCrouching()){
                 ModPacketHandler.sendToServer(new RechargeChakra());
             }
         }

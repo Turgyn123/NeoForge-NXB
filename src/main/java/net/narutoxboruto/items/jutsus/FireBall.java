@@ -12,34 +12,34 @@ import net.narutoxboruto.entities.jutsus.FireBallEntity;
  * ignites entities on contact and creates explosive craters on ground impact.
  * Requires Fire release affinity.
  */
-public class FireBall extends AbstractNatureReleaseItem {
+public class FireBall extends AbstractJutsuItem {
 
     public FireBall(Properties pProperties) {
         super(pProperties);
     }
 
     @Override
-    public String getSelectedJutsu(ServerPlayer serverPlayer) {
-        return "fire_ball";
+    public String getJutsuName() {
+        return "Fire Ball";
     }
 
     @Override
-    protected String getRequiredRelease() {
+    public String getRequiredRelease() {
         return "fire";
     }
 
     @Override
-    protected int getJutsuChakraCost(ServerPlayer serverPlayer) {
-        return 20;
+    public int getChakraCost() {
+        return 5;
     }
 
     @Override
-    protected int getCooldownTicks() {
+    public int getCooldownTicks() {
         return 60; // 3 seconds cooldown
     }
 
     @Override
-    protected boolean castJutsu(ServerPlayer serverPlayer, Level level) {
+    protected boolean executeJutsu(ServerPlayer serverPlayer, Level level) {
         if (!(level instanceof ServerLevel)) {
             return false;
         }

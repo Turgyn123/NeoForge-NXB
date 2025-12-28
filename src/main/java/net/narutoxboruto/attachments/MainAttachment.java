@@ -44,6 +44,7 @@ public class MainAttachment {
     public static final Supplier<AttachmentType<ChakraControl>> CHAKRA_CONTROL = ATTACHMENT_TYPES.register("chakra_control", () -> AttachmentType.<ChakraControl>builder(() -> new ChakraControl()).serialize(ChakraControl.CODEC).copyOnDeath().build());
     public static final Supplier<AttachmentType<NarutoRun>> NARUTO_RUN = ATTACHMENT_TYPES.register("naruto_run", () -> AttachmentType.<NarutoRun>builder(() -> new NarutoRun()).serialize(NarutoRun.CODEC).copyOnDeath().build());
     public static final Supplier<AttachmentType<JutsuWheel>> JUTSU_WHEEL = ATTACHMENT_TYPES.register("jutsu_wheel", () -> AttachmentType.<JutsuWheel>builder(() -> new JutsuWheel()).serialize(JutsuWheel.CODEC).copyOnDeath().build());
+    public static final Supplier<AttachmentType<JutsuStorage>> JUTSU_STORAGE = ATTACHMENT_TYPES.register("jutsu_storage", () -> AttachmentType.<JutsuStorage>builder(() -> new JutsuStorage()).serialize(JutsuStorage.CODEC).copyOnDeath().build());
 
     public static void register(IEventBus modEventBus) {
         ATTACHMENT_TYPES.register(modEventBus);

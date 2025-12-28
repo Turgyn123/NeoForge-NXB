@@ -5,6 +5,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.SwordItem;
 import net.narutoxboruto.entities.ModEntities;
+import net.narutoxboruto.items.jutsus.EarthWall;
+import net.narutoxboruto.items.jutsus.FireBall;
 import net.narutoxboruto.items.misc.ChakraPaper;
 import net.narutoxboruto.items.misc.ClanReroll;
 import net.narutoxboruto.items.misc.RandomDna;
@@ -67,6 +69,10 @@ public class ModItems {
     public static final DeferredItem<SpawnEggItem> KISAME_SPAWN_EGG = ITEMS.registerItem("kisame_hoshigaki_egg", properties -> new SpawnEggItem(ModEntities.KISAME_HOSHIGAKI.get(), 0x14161E, 14278624, properties), new Item.Properties());
     public static final DeferredItem<SpawnEggItem> ZABUZA_SPAWN_EGG = ITEMS.registerItem("zabuza_momochi_egg", properties -> new SpawnEggItem(ModEntities.ZABUZA_MOMOCHI.get(), 4342344, 13948116, properties), new Item.Properties());
     public static final DeferredItem<SpawnEggItem> JINPACHI_SPAWN_EGG = ITEMS.registerItem("jinpachi_munashi_egg", properties -> new SpawnEggItem(ModEntities.JINPACHI_MUNASHI.get(), 12758635, 5000268, properties), new Item.Properties());
+
+    //JUTSU ITEMS
+    public static final DeferredItem<Item> FIRE_BALL_JUTSU = ITEMS.register("fire_ball_jutsu", () -> new FireBall(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> EARTH_WALL_JUTSU = ITEMS.register("earth_wall_jutsu", () -> new EarthWall(new Item.Properties().stacksTo(1)));
 
     public static void register(IEventBus eventBus) {
        ITEMS.register(eventBus);

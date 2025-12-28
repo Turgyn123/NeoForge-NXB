@@ -40,8 +40,9 @@ public class SyncMaxChakra implements CustomPacketPayload {
             if (level != null && Minecraft.getInstance().player != null) {
                 LocalPlayer clientPlayer = Minecraft.getInstance().player;
 
-                MaxChakra maxchakra = clientPlayer.getData(MainAttachment.MAX_CHAKRA);
-                maxchakra.setValue(this.maxChakra); // Use client-side method
+                // Create a new MaxChakra object with the synced value and set it back
+                MaxChakra maxchakra = new MaxChakra(this.maxChakra);
+                clientPlayer.setData(MainAttachment.MAX_CHAKRA, maxchakra);
             }
         });
     }

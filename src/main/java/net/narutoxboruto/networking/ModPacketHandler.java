@@ -59,6 +59,10 @@ public class ModPacketHandler {
         registrar.playToServer(CastJutsuPacket.TYPE, CastJutsuPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(SelectJutsuSlotPacket.TYPE, SelectJutsuSlotPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(AssignJutsuSlotPacket.TYPE, AssignJutsuSlotPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        
+        // Jutsu Storage packets
+        registrar.playToClient(SyncJutsuStorage.TYPE, SyncJutsuStorage.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        registrar.playToServer(OpenJutsuStoragePacket.TYPE, OpenJutsuStoragePacket.STREAM_CODEC, OpenJutsuStoragePacket::handle);
     }
 
     public static void sendToPlayer(CustomPacketPayload packet, ServerPlayer player) {

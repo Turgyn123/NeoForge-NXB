@@ -17,6 +17,7 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.info.ReleaseList;
 import net.narutoxboruto.jutsu.JutsuWheel;
+import net.narutoxboruto.util.JutsuGrantHelper;
 import net.narutoxboruto.util.ModUtil;
 
 public class ReleaseDnaBottleItem extends Item {
@@ -38,6 +39,9 @@ public class ReleaseDnaBottleItem extends Item {
                 JutsuWheel wheel = serverPlayer.getData(MainAttachment.JUTSU_WHEEL);
                 wheel.autoPopulate(releaseList.getValue());
                 wheel.syncValue(serverPlayer);
+                
+                // Grant corresponding jutsu item to player's jutsu storage
+                JutsuGrantHelper.grantJutsuForRelease(serverPlayer, natureType);
                 
                 ModUtil.displayColoredMessage(serverPlayer, "dna_bottle.release.success",
                         "release." + natureType, ChatFormatting.GREEN);

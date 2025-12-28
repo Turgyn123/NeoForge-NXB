@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.jutsu.JutsuWheel;
+import net.narutoxboruto.util.JutsuGrantHelper;
 import net.narutoxboruto.util.ModUtil;
 
 import static net.narutoxboruto.util.ModUtil.*;
@@ -45,6 +46,9 @@ public class ChakraPaper extends Item {
                 JutsuWheel wheel = serverPlayer.getData(MainAttachment.JUTSU_WHEEL);
                 wheel.autoPopulate(releaseListAttachment.getValue());
                 wheel.syncValue(serverPlayer);
+                
+                // Grant corresponding jutsu items to player's storage
+                JutsuGrantHelper.grantJutsusForReleases(serverPlayer, newReleaseList);
                 
                 String s = newReleaseList.contains(",") ? "s" : "";
                 displayTranslatableMessage(serverPlayer, "release" + s, releaseListAttachment.getValue(), true);

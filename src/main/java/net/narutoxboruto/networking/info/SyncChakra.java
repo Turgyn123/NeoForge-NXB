@@ -38,8 +38,9 @@ public class SyncChakra implements CustomPacketPayload {
             if (level != null && Minecraft.getInstance().player != null) {
                 LocalPlayer clientPlayer = Minecraft.getInstance().player;
 
-                Chakra chakra = clientPlayer.getData(MainAttachment.CHAKRA);
-                chakra.setValue(this.chakra); // Use client-side method
+                // Create a new Chakra object with the synced value and set it back
+                Chakra chakra = new Chakra(this.chakra);
+                clientPlayer.setData(MainAttachment.CHAKRA, chakra);
             }
         });
     }
