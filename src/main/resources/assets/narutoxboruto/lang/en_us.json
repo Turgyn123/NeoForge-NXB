@@ -5,6 +5,7 @@
   "itemGroup.dna_tab": "Dna Bottles",
   "itemGroup.bosses_tab": "Spawn Eggs",
   "itemGroup.scroll": "Scrolls",
+  "itemGroup.jutsus_tab": "Jutsus",
 
 
   "effect.narutoxboruto.chakra_control": "Chakra Control",
@@ -43,6 +44,8 @@
   "item.narutoxboruto.shurikenjutsu_scroll":"Shurikenjutsu Scroll",
   "item.narutoxboruto.speed_scroll":"Speed Scroll",
   "item.narutoxboruto.summoning_scroll":"Summoning Scroll",
+  "item.narutoxboruto.earth_wall":"Earth Wall Jutsu",
+  "item.narutoxboruto.fire_ball":"Fire Ball Jutsu",
 
 
 
@@ -60,8 +63,18 @@
   "key.narutoxboruto.chakra_recharge": "Chakra Recharge",
   "key.narutoxboruto.open_gui": "Stats Gui",
   "key.narutoxboruto.special_action": "Special Action",
+  "key.narutoxboruto.jutsu_wheel": "Jutsu Wheel",
 
   "gui.narutoxboruto.shinobi_stats": "Shinobi Stats",
+  "gui.narutoxboruto.jutsu_wheel": "Jutsu Wheel",
+  "gui.jutsu_wheel.empty_slot": "Empty Slot",
+  "gui.jutsu_wheel.instructions": "Left-click to select | Press 1-8 for quick select",
+  
+  "msg.no_jutsu_selected": "No jutsu selected! Press Z to open the jutsu wheel.",
+  "msg.not_channeling": "You must channel chakra first! (Press C)",
+  "msg.unknown_jutsu": "Unknown jutsu!",
+  "msg.jutsu_cooldown": "Jutsu is on cooldown!",
+  "msg.no_ground": "Must target solid ground!",
   "shinobiStat.taijutsu": "Taijutsu",
   "shinobiStat.ninjutsu": "Ninjutsu",
   "shinobiStat.genjutsu": "Genjutsu",
@@ -112,6 +125,7 @@
   "msg.affinity.primary_release": "You have chakra affinity towards the %s element",
   "msg.narutoxboruto.rank": "You are an %s",
   "msg.no_chakra": "Not enough chakra",
+  "msg.no_release": "You don't have the required nature release",
   "msg.narutoxboruto.release": "you start with %s release",
   "msg.narutoxboruto.releases": "you start with %s release",
 
@@ -164,5 +178,8 @@
   "command.shinobi_info.sub.single": "Subtracted %s from %s %s",
   "command.shinobi_info.sub.multiple": "Subtracted %s from %s for %s players",
   "command.shinobi_info.add.single": "Added %s to %s %s",
-  "command.shinobi_info.add.multiple": "Added %s to %s for %s players"
+  "command.shinobi_info.add.multiple": "Added %s to %s for %s players",
+
+  "jutsu.earth_wall": "Earth Style: Mud Wall",
+  "jutsu.fire_ball": "Fire Style: Fireball Jutsu"
 }

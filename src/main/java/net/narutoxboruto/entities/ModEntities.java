@@ -8,6 +8,7 @@ import net.narutoxboruto.entities.shinobis.JinpachiMunashi;
 import net.narutoxboruto.entities.shinobis.KizameHoshigaki;
 import net.narutoxboruto.entities.shinobis.ZabuzaMomochi;
 import net.narutoxboruto.entities.throwables.*;
+import net.narutoxboruto.entities.jutsus.FireBallEntity;
 import net.narutoxboruto.main.Main;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -25,6 +26,9 @@ public class ModEntities {
     public static final DeferredHolder<EntityType<?>, EntityType<PoisonSenbon>> POISON_SENBON = registerEntity("poison_senbon", PoisonSenbon::new, MobCategory.MISC, 0.5F, 0.5F);
     public static final DeferredHolder<EntityType<?>, EntityType<Senbon>> SENBON = registerEntity("senbon", Senbon::new, MobCategory.MISC, 0.5F, 0.5F);
     public static final DeferredHolder<EntityType<?>, EntityType<ThrownFumaShuriken>> FUMA_SHURIKEN = registerEntity("fuma_shuriken", ThrownFumaShuriken::new, MobCategory.MISC, 0.5F, 0.5F);
+
+    //JUTSUS
+    public static final DeferredHolder<EntityType<?>, EntityType<FireBallEntity>> FIRE_BALL = registerEntity("fire_ball", FireBallEntity::new, MobCategory.MISC, 1.0F, 1.0F);
 
     //BOSSES
     public static final DeferredHolder<EntityType<?>, EntityType<KizameHoshigaki>> KISAME_HOSHIGAKI = registerEntity("kisame_hoshigaki", KizameHoshigaki::new, MobCategory.MONSTER, 0.6F, 1.8F);

@@ -3,6 +3,7 @@ package net.narutoxboruto.networking;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.narutoxboruto.networking.info.*;
+import net.narutoxboruto.networking.jutsu.*;
 import net.narutoxboruto.networking.jutsus.*;
 import net.narutoxboruto.networking.misc.*;
 import net.narutoxboruto.networking.stats.*;
@@ -44,13 +45,20 @@ public class ModPacketHandler {
         registrar.playToClient(SyncTaijutsu.TYPE, SyncTaijutsu.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncSpeed.TYPE, SyncSpeed.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncChakraControl.TYPE, SyncChakraControl.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        
+        // Jutsu Wheel packets
+        registrar.playToClient(SyncJutsuWheel.TYPE, SyncJutsuWheel.STREAM_CODEC, (payload, context) -> payload.handle(context));
 
         //Serverbound packets
         registrar.playToServer(ToggleSwordAbility.TYPE, ToggleSwordAbility.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(RechargeChakra.TYPE, RechargeChakra.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncNarutoRun.TYPE, SyncNarutoRun.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(ToggleChakraControl.TYPE, ToggleChakraControl.STREAM_CODEC, (payload, context) -> payload.handle(context));
-
+        
+        // Jutsu casting packets
+        registrar.playToServer(CastJutsuPacket.TYPE, CastJutsuPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        registrar.playToServer(SelectJutsuSlotPacket.TYPE, SelectJutsuSlotPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        registrar.playToServer(AssignJutsuSlotPacket.TYPE, AssignJutsuSlotPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
     }
 
     public static void sendToPlayer(CustomPacketPayload packet, ServerPlayer player) {

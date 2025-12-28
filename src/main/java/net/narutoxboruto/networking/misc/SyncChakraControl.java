@@ -33,6 +33,8 @@ public class SyncChakraControl implements CustomPacketPayload {
     public void handle(IPayloadContext context) {
         context.enqueueWork(() -> {
             context.player().getData(MainAttachment.CHAKRA_CONTROL);
+            // Update client-side cache for jutsu casting
+            net.narutoxboruto.client.PlayerData.setChakraControlActive(value);
         });
     }
 

@@ -1,0 +1,93 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Client",
+      "presentation": {
+        "group": "Mod Development - NeoForge-NXB",
+        "order": 0
+      },
+      "projectName": "NeoForge-NXB",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dnarutoxboruto%%C:\\Users\\purea\\Modding\\NeoForge-NXB\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Data",
+      "presentation": {
+        "group": "Mod Development - NeoForge-NXB",
+        "order": 1
+      },
+      "projectName": "NeoForge-NXB",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\dataRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dnarutoxboruto%%C:\\Users\\purea\\Modding\\NeoForge-NXB\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "GameTestServer",
+      "presentation": {
+        "group": "Mod Development - NeoForge-NXB",
+        "order": 2
+      },
+      "projectName": "NeoForge-NXB",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\gameTestServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\gameTestServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dnarutoxboruto%%C:\\Users\\purea\\Modding\\NeoForge-NXB\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Server",
+      "presentation": {
+        "group": "Mod Development - NeoForge-NXB",
+        "order": 3
+      },
+      "projectName": "NeoForge-NXB",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@C:\\Users\\purea\\Modding\\NeoForge-NXB\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dnarutoxboruto%%C:\\Users\\purea\\Modding\\NeoForge-NXB\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}

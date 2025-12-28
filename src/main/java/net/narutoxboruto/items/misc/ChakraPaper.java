@@ -11,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.narutoxboruto.attachments.MainAttachment;
+import net.narutoxboruto.jutsu.JutsuWheel;
 import net.narutoxboruto.util.ModUtil;
 
 import static net.narutoxboruto.util.ModUtil.*;
@@ -39,6 +40,12 @@ public class ChakraPaper extends Item {
                     }
                 }
                 releaseListAttachment.concatList(newReleaseList, serverPlayer);
+                
+                // Auto-populate jutsu wheel with jutsus for the new nature(s)
+                JutsuWheel wheel = serverPlayer.getData(MainAttachment.JUTSU_WHEEL);
+                wheel.autoPopulate(releaseListAttachment.getValue());
+                wheel.syncValue(serverPlayer);
+                
                 String s = newReleaseList.contains(",") ? "s" : "";
                 displayTranslatableMessage(serverPlayer, "release" + s, releaseListAttachment.getValue(), true);
 

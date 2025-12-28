@@ -5,6 +5,7 @@ import net.narutoxboruto.attachments.jutsus.*;
 import net.narutoxboruto.attachments.modes.ChakraControl;
 import net.narutoxboruto.attachments.modes.NarutoRun;
 import net.narutoxboruto.attachments.stats.*;
+import net.narutoxboruto.jutsu.JutsuWheel;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -42,6 +43,7 @@ public class MainAttachment {
     public static final Supplier<AttachmentType<ReleaseList>> RELEASE_LIST = ATTACHMENT_TYPES.register("release_list", () -> AttachmentType.<ReleaseList>builder(() -> new ReleaseList()).serialize(ReleaseList.CODEC).copyOnDeath().build());
     public static final Supplier<AttachmentType<ChakraControl>> CHAKRA_CONTROL = ATTACHMENT_TYPES.register("chakra_control", () -> AttachmentType.<ChakraControl>builder(() -> new ChakraControl()).serialize(ChakraControl.CODEC).copyOnDeath().build());
     public static final Supplier<AttachmentType<NarutoRun>> NARUTO_RUN = ATTACHMENT_TYPES.register("naruto_run", () -> AttachmentType.<NarutoRun>builder(() -> new NarutoRun()).serialize(NarutoRun.CODEC).copyOnDeath().build());
+    public static final Supplier<AttachmentType<JutsuWheel>> JUTSU_WHEEL = ATTACHMENT_TYPES.register("jutsu_wheel", () -> AttachmentType.<JutsuWheel>builder(() -> new JutsuWheel()).serialize(JutsuWheel.CODEC).copyOnDeath().build());
 
     public static void register(IEventBus modEventBus) {
         ATTACHMENT_TYPES.register(modEventBus);

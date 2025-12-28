@@ -1,5 +1,7 @@
 package net.narutoxboruto.client;
 
+import net.narutoxboruto.jutsu.JutsuWheel;
+
 public class PlayerData {
 
     //INFO
@@ -15,6 +17,10 @@ public class PlayerData {
     private static String release, fireJutsu, waterJutsu, yangJutsu, yinJutsu, earthJutsu, windJutsu, lightningJutsu;
     private static String selectedRelease;
    // private static ItemStack secondOffhandStack = ItemStack.EMPTY;
+    
+    // Jutsu Wheel (client-side cache)
+    private static JutsuWheel jutsuWheel = new JutsuWheel();
+    private static boolean chakraControlActive = false;
 
     public static int getChakra() {
         return chakra;
@@ -22,6 +28,23 @@ public class PlayerData {
 
     public static void setChakra(int chakra) {
         PlayerData.chakra = chakra;
+    }
+    
+    // Jutsu Wheel methods
+    public static JutsuWheel getJutsuWheel() {
+        return jutsuWheel;
+    }
+    
+    public static void setJutsuWheelData(String data) {
+        jutsuWheel = new JutsuWheel(data);
+    }
+    
+    public static boolean isChakraControlActive() {
+        return chakraControlActive;
+    }
+    
+    public static void setChakraControlActive(boolean active) {
+        chakraControlActive = active;
     }
 
     public static int getMaxChakra() {
