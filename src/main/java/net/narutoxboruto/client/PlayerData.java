@@ -17,6 +17,8 @@ public class PlayerData {
    // private static ItemStack secondOffhandStack = ItemStack.EMPTY;
     
     private static boolean chakraControlActive = false;
+    private static boolean kibaActive = false;
+    private static boolean lightningChakraModeActive = false;
 
     public static int getChakra() {
         return chakra;
@@ -32,6 +34,22 @@ public class PlayerData {
     
     public static void setChakraControlActive(boolean active) {
         chakraControlActive = active;
+    }
+
+    public static boolean isKibaActive() {
+        return kibaActive;
+    }
+
+    public static void setKibaActive(boolean active) {
+        kibaActive = active;
+    }
+
+    public static boolean isLightningChakraModeActive() {
+        return lightningChakraModeActive;
+    }
+
+    public static void setLightningChakraModeActive(boolean active) {
+        lightningChakraModeActive = active;
     }
 
     public static int getMaxChakra() {

@@ -6,7 +6,12 @@ import net.narutoxboruto.client.model.FireBallModel;
 import net.narutoxboruto.client.renderer.entity.*;
 import net.narutoxboruto.client.renderer.shinobi.AbstractShinobiRender;
 import net.narutoxboruto.entities.ModEntities;
+import net.narutoxboruto.fluids.ModFluidBlocks;
+import net.narutoxboruto.fluids.ModFluids;
+import net.narutoxboruto.fluids.StaticWaterClientExtension;
 import net.narutoxboruto.menu.ModMenuTypes;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -15,6 +20,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
@@ -36,11 +42,21 @@ public class MainClient {
     static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenuTypes.JUTSU_STORAGE.get(), JutsuStorageScreen::new);
     }
+    
+    @SubscribeEvent
+    static void onRegisterClientExtensions(RegisterClientExtensionsEvent event) {
+        // Register static water fluid rendering with water textures
+        event.registerFluidType(StaticWaterClientExtension.INSTANCE, ModFluids.STATIC_WATER_TYPE.get());
+    }
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         // Some client setup code
         event.enqueueWork(() -> {
+            // Register static water block as translucent for semi-transparent rendering like vanilla water
+            ItemBlockRenderTypes.setRenderLayer(ModFluids.STATIC_WATER.get(), RenderType.translucent());
+            ItemBlockRenderTypes.setRenderLayer(ModFluidBlocks.STATIC_WATER_BLOCK.get(), RenderType.translucent());
+            
             // your client, only entity renderers, packet receivers, etc.
 
             EntityRenderers.register(ModEntities.SHURIKEN.get(), ShurikenRenderer::new);

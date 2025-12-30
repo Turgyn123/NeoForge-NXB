@@ -45,6 +45,8 @@ public class ModPacketHandler {
         registrar.playToClient(SyncTaijutsu.TYPE, SyncTaijutsu.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncSpeed.TYPE, SyncSpeed.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncChakraControl.TYPE, SyncChakraControl.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        registrar.playToClient(SyncKibaActive.TYPE, SyncKibaActive.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        registrar.playToClient(SyncLightningChakraModeActive.TYPE, SyncLightningChakraModeActive.STREAM_CODEC, (payload, context) -> payload.handle(context));
 
         //Serverbound packets
         registrar.playToServer(ToggleSwordAbility.TYPE, ToggleSwordAbility.STREAM_CODEC, (payload, context) -> payload.handle(context));

@@ -8,6 +8,7 @@ import net.narutoxboruto.attachments.info.*;
 import net.narutoxboruto.attachments.jutsus.JutsuStorage;
 import net.narutoxboruto.items.jutsus.AbstractJutsuItem;
 import net.narutoxboruto.main.Main;
+import net.narutoxboruto.util.JutsuGrantHelper;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
@@ -44,7 +45,8 @@ public class AttachmentEvents {
             serverPlayer.getData(MainAttachment.SUMMONING).syncValue(serverPlayer);
             serverPlayer.getData(MainAttachment.TAIJUTSU).syncValue(serverPlayer);
             
-            // Sync jutsu storage
+            // Clean up any duplicate jutsus and sync jutsu storage
+            JutsuGrantHelper.cleanupDuplicateJutsus(serverPlayer);
             serverPlayer.getData(MainAttachment.JUTSU_STORAGE).syncToClient(serverPlayer);
         }
     }

@@ -19,6 +19,8 @@ import net.narutoxboruto.attachments.modes.ChakraControl;
 import net.narutoxboruto.attachments.stats.*;
 import net.narutoxboruto.effect.ModEffects;
 import net.narutoxboruto.items.ModItems;
+import net.narutoxboruto.items.swords.Kiba;
+import net.narutoxboruto.items.jutsus.LightningChakraMode;
 import net.narutoxboruto.util.ModUtil;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
@@ -35,6 +37,8 @@ public class StatEvents {
     private static final Map<UUID, Integer> playerHitCounters = new HashMap<>();
     private static final Map<UUID, Integer> playerDamageCounters = new HashMap<>();
     private static final Map<UUID, Integer> playerThrowCounters = new HashMap<>(); // NEW: Counter for tracking thrown items
+    private static final Map<UUID, Integer> kibaDrainTimers = new HashMap<>(); // Timer for Kiba chakra drain
+    private static final Map<UUID, Integer> lightningChakraModeDrainTimers = new HashMap<>(); // Timer for Lightning Chakra Mode drain
     private static boolean taiFlag, kenFlag;
     private static int chakraDrainTimer;
 
@@ -143,6 +147,12 @@ public class StatEvents {
     @SubscribeEvent
     public static void addStatBonuses(PlayerTickEvent.Post event) {
         if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            // Skip stat-based speed if Lightning Chakra Mode is active
+            // Let the jutsu handle speed effects instead
+            if (LightningChakraMode.isActive(serverPlayer)) {
+                return;
+            }
+            
             Speed speed = serverPlayer.getData(MainAttachment.SPEED);
             int speedLevel = speed.getValue() / 10;
 
@@ -210,6 +220,38 @@ public class StatEvents {
                     chakraDrainTimer = 0;
                     serverPlayer.displayClientMessage(Component.translatable("msg.no_chakra"), true);
                 }
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void kibaChakraDrain(PlayerTickEvent.Post event) {
+        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            UUID playerId = serverPlayer.getUUID();
+            int timer = kibaDrainTimers.getOrDefault(playerId, 0);
+            
+            if (timer > 0) {
+                kibaDrainTimers.put(playerId, timer - 1);
+            } else {
+                // Drain every 20 ticks (1 second)
+                kibaDrainTimers.put(playerId, 20);
+                Kiba.tickChakraDrain(serverPlayer);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void lightningChakraModeChakraDrain(PlayerTickEvent.Post event) {
+        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            UUID playerId = serverPlayer.getUUID();
+            int timer = lightningChakraModeDrainTimers.getOrDefault(playerId, 0);
+            
+            if (timer > 0) {
+                lightningChakraModeDrainTimers.put(playerId, timer - 1);
+            } else {
+                // Drain every 100 ticks (5 seconds)
+                lightningChakraModeDrainTimers.put(playerId, 100);
+                LightningChakraMode.tickChakraDrain(serverPlayer);
             }
         }
     }

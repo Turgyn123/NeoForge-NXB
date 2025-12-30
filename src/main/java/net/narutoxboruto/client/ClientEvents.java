@@ -12,6 +12,8 @@ import net.narutoxboruto.networking.jutsu.OpenJutsuStoragePacket;
 import net.narutoxboruto.networking.misc.RechargeChakra;
 import net.narutoxboruto.networking.misc.ToggleChakraControl;
 import net.narutoxboruto.networking.misc.ToggleSwordAbility;
+import net.narutoxboruto.particles.LightningSparksParticle;
+import net.narutoxboruto.particles.ModParticles;
 import net.narutoxboruto.util.ModKeyBinds;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -19,6 +21,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 @EventBusSubscriber(modid = Main.MOD_ID, value = Dist.CLIENT, bus =EventBusSubscriber.Bus.MOD)
@@ -99,6 +102,11 @@ public class ClientEvents {
             event.register(ModKeyBinds.OPEN_GUI);
             event.register(ModKeyBinds.CHAKRA_CONTROL);
             event.register(ModKeyBinds.JUTSU_STORAGE);
+        }
+        
+        @SubscribeEvent
+        public static void onRegisterParticles(RegisterParticleProvidersEvent event) {
+            event.registerSpriteSet(ModParticles.LIGHTNING_SPARKS.get(), LightningSparksParticle.Provider::new);
         }
     }
 

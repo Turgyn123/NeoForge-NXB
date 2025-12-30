@@ -11,6 +11,7 @@ import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.jutsus.JutsuStorage;
 import net.narutoxboruto.main.Main;
 import net.narutoxboruto.menu.JutsuStorageMenu;
+import net.narutoxboruto.util.JutsuGrantHelper;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
@@ -33,6 +34,9 @@ public record OpenJutsuStoragePacket() implements CustomPacketPayload {
     public static void handle(OpenJutsuStoragePacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer serverPlayer) {
+                // Clean up any duplicate jutsus before opening
+                JutsuGrantHelper.cleanupDuplicateJutsus(serverPlayer);
+                
                 JutsuStorage storage = serverPlayer.getData(MainAttachment.JUTSU_STORAGE);
                 
                 serverPlayer.openMenu(new SimpleMenuProvider(

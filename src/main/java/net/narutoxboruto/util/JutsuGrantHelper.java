@@ -47,25 +47,25 @@ public class JutsuGrantHelper {
                 jutsuName = "Fire Ball";
                 break;
             case "earth":
-                jutsuToGrant = new ItemStack(ModItems.EARTH_WALL_JUTSU.get());
-                jutsuName = "Earth Wall";
+                grantMultipleJutsus(serverPlayer, storage, 
+                    new ItemStack(ModItems.EARTH_WALL_JUTSU.get()), "Earth Wall",
+                    new ItemStack(ModItems.EARTH_WAVE_JUTSU.get()), "Earth Wave");
+                return; // Already handled
+            case "water":
+                jutsuToGrant = new ItemStack(ModItems.WATER_PRISON_JUTSU.get());
+                jutsuName = "Water Prison";
                 break;
-            // Add more releases here as jutsus are added
-            // case "water": 
-            //     jutsuToGrant = new ItemStack(ModItems.WATER_JUTSU.get()); 
-            //     jutsuName = "Water Jutsu";
-            //     break;
-            // case "lightning": 
-            //     jutsuToGrant = new ItemStack(ModItems.LIGHTNING_JUTSU.get()); 
-            //     jutsuName = "Lightning Jutsu";
-            //     break;
+            case "lightning":
+                jutsuToGrant = new ItemStack(ModItems.LIGHTNING_CHAKRA_MODE.get());
+                jutsuName = "Lightning Chakra Mode";
+                break;
             // case "wind": 
             //     jutsuToGrant = new ItemStack(ModItems.WIND_JUTSU.get()); 
             //     jutsuName = "Wind Jutsu";
             //     break;
         }
         
-        if (jutsuToGrant != null && storage.addJutsu(jutsuToGrant)) {
+        if (jutsuToGrant != null && storage.addJutsuIfNotOwned(jutsuToGrant, serverPlayer)) {
             serverPlayer.setData(MainAttachment.JUTSU_STORAGE, storage);
             storage.syncToClient(serverPlayer);
             
@@ -79,5 +79,130 @@ public class JutsuGrantHelper {
                     .append(Component.literal(")").withStyle(ChatFormatting.GREEN))
             );
         }
+    }
+    
+    /**
+     * Helper method to grant multiple jutsus for a single release.
+     */
+    private static void grantMultipleJutsus(ServerPlayer serverPlayer, JutsuStorage storage, 
+            ItemStack jutsu1, String name1, ItemStack jutsu2, String name2) {
+        boolean granted1 = storage.addJutsuIfNotOwned(jutsu1, serverPlayer);
+        boolean granted2 = storage.addJutsuIfNotOwned(jutsu2, serverPlayer);
+        
+        if (granted1 || granted2) {
+            serverPlayer.setData(MainAttachment.JUTSU_STORAGE, storage);
+            storage.syncToClient(serverPlayer);
+        }
+        
+        if (granted1) {
+            serverPlayer.sendSystemMessage(
+                Component.literal("You mastered ")
+                    .withStyle(ChatFormatting.GREEN)
+                    .append(Component.literal(name1).withStyle(ChatFormatting.GOLD))
+                    .append(Component.literal(", (Press ").withStyle(ChatFormatting.GREEN))
+                    .append(Component.literal("Z").withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(")").withStyle(ChatFormatting.GREEN))
+            );
+        }
+        if (granted2) {
+            serverPlayer.sendSystemMessage(
+                Component.literal("You mastered ")
+                    .withStyle(ChatFormatting.GREEN)
+                    .append(Component.literal(name2).withStyle(ChatFormatting.GOLD))
+                    .append(Component.literal(", (Press ").withStyle(ChatFormatting.GREEN))
+                    .append(Component.literal("Z").withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(")").withStyle(ChatFormatting.GREEN))
+            );
+        }
+    }
+    
+    /**
+     * Clean up duplicate jutsus in a player's storage.
+     * Call this on player login or when opening jutsu storage to fix any existing duplicates.
+     */
+    public static void cleanupDuplicateJutsus(ServerPlayer serverPlayer) {
+        JutsuStorage storage = serverPlayer.getData(MainAttachment.JUTSU_STORAGE);
+        int removed = storage.removeDuplicates(serverPlayer);
+        
+        if (removed > 0) {
+            serverPlayer.setData(MainAttachment.JUTSU_STORAGE, storage);
+            storage.syncToClient(serverPlayer);
+        }
+    }
+    
+    /**
+     * Verifies that a player has all jutsus they should have based on their releases.
+     * If a jutsu is missing from both inventory and jutsu storage, it will be restored.
+     * Call this periodically or on player login.
+     * 
+     * @param serverPlayer The player to verify jutsus for
+     * @param checkInventory If true, also check player's inventory for the jutsu before restoring
+     */
+    public static void verifyAndRestoreMissingJutsus(ServerPlayer serverPlayer, boolean checkInventory) {
+        String playerReleases = serverPlayer.getData(MainAttachment.RELEASE_LIST).getValue();
+        if (playerReleases == null || playerReleases.isEmpty()) return;
+        
+        JutsuStorage storage = serverPlayer.getData(MainAttachment.JUTSU_STORAGE);
+        boolean modified = false;
+        
+        // Check each release and ensure player has the corresponding jutsu(s)
+        if (playerReleases.toLowerCase().contains("fire")) {
+            if (!hasJutsuAnywhere(serverPlayer, storage, ModItems.FIRE_BALL_JUTSU.get(), checkInventory)) {
+                storage.addJutsu(new ItemStack(ModItems.FIRE_BALL_JUTSU.get()));
+                modified = true;
+            }
+        }
+        
+        if (playerReleases.toLowerCase().contains("earth")) {
+            if (!hasJutsuAnywhere(serverPlayer, storage, ModItems.EARTH_WALL_JUTSU.get(), checkInventory)) {
+                storage.addJutsu(new ItemStack(ModItems.EARTH_WALL_JUTSU.get()));
+                modified = true;
+            }
+            if (!hasJutsuAnywhere(serverPlayer, storage, ModItems.EARTH_WAVE_JUTSU.get(), checkInventory)) {
+                storage.addJutsu(new ItemStack(ModItems.EARTH_WAVE_JUTSU.get()));
+                modified = true;
+            }
+        }
+        
+        if (playerReleases.toLowerCase().contains("water")) {
+            if (!hasJutsuAnywhere(serverPlayer, storage, ModItems.WATER_PRISON_JUTSU.get(), checkInventory)) {
+                storage.addJutsu(new ItemStack(ModItems.WATER_PRISON_JUTSU.get()));
+                modified = true;
+            }
+        }
+        
+        if (playerReleases.toLowerCase().contains("lightning")) {
+            if (!hasJutsuAnywhere(serverPlayer, storage, ModItems.LIGHTNING_CHAKRA_MODE.get(), checkInventory)) {
+                storage.addJutsu(new ItemStack(ModItems.LIGHTNING_CHAKRA_MODE.get()));
+                modified = true;
+            }
+        }
+        
+        if (modified) {
+            serverPlayer.setData(MainAttachment.JUTSU_STORAGE, storage);
+            storage.syncToClient(serverPlayer);
+        }
+    }
+    
+    /**
+     * Check if a player has a specific jutsu item in storage or inventory.
+     */
+    private static boolean hasJutsuAnywhere(ServerPlayer player, JutsuStorage storage, net.minecraft.world.item.Item jutsuItem, boolean checkInventory) {
+        // Check jutsu storage
+        if (storage.hasJutsu(jutsuItem.getClass())) {
+            return true;
+        }
+        
+        // Check player inventory if requested
+        if (checkInventory) {
+            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                ItemStack stack = player.getInventory().getItem(i);
+                if (stack.getItem() == jutsuItem) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 }

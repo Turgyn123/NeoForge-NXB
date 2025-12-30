@@ -11,7 +11,9 @@ import net.minecraft.world.item.ItemStack;
 import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.jutsus.JutsuStorage;
 import net.narutoxboruto.items.jutsus.AbstractJutsuItem;
+import net.narutoxboruto.items.jutsus.LightningChakraMode;
 import net.narutoxboruto.menu.JutsuStorageMenu;
+import net.narutoxboruto.util.JutsuGrantHelper;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
@@ -35,6 +37,14 @@ import java.util.Iterator;
 public class JutsuItemEvents {
 
     /**
+     * Check if an item is a jutsu item that should be protected from dropping/trading.
+     */
+    private static boolean isProtectedJutsuItem(ItemStack stack) {
+        return stack.getItem() instanceof AbstractJutsuItem || 
+               stack.getItem() instanceof LightningChakraMode;
+    }
+
+    /**
      * Prevent players from dropping jutsu items with Q key.
      * Cancel the event and return the item to their inventory.
      */
@@ -43,15 +53,21 @@ public class JutsuItemEvents {
         ItemStack stack = event.getEntity().getItem();
         Player player = event.getPlayer();
         
-        if (stack.getItem() instanceof AbstractJutsuItem) {
+        if (isProtectedJutsuItem(stack)) {
             // Cancel the drop
             event.setCanceled(true);
             
+            // Kill the item entity to prevent it from existing
+            event.getEntity().discard();
+            
+            // Make a copy of the stack to give back
+            ItemStack returnStack = stack.copy();
+            
             // Give the item back to the player
-            if (!player.getInventory().add(stack)) {
+            if (!player.getInventory().add(returnStack)) {
                 // If inventory is somehow full, put it back in jutsu storage
                 if (player instanceof ServerPlayer serverPlayer) {
-                    returnJutsuToStorage(serverPlayer, stack);
+                    returnJutsuToStorage(serverPlayer, returnStack);
                 }
             }
         }
@@ -80,7 +96,7 @@ public class JutsuItemEvents {
             Slot slot = container.slots.get(i);
             ItemStack stack = slot.getItem();
             
-            if (stack.getItem() instanceof AbstractJutsuItem) {
+            if (isProtectedJutsuItem(stack)) {
                 // Check if this slot belongs to player's inventory
                 if (!(slot.container instanceof Inventory)) {
                     // This jutsu item is in a non-player container slot - remove it
@@ -111,7 +127,7 @@ public class JutsuItemEvents {
             ItemEntity itemEntity = iterator.next();
             ItemStack stack = itemEntity.getItem();
             
-            if (stack.getItem() instanceof AbstractJutsuItem) {
+            if (isProtectedJutsuItem(stack)) {
                 // Remove from drops - they'll be preserved via Clone event
                 iterator.remove();
                 
@@ -124,12 +140,18 @@ public class JutsuItemEvents {
     
     /**
      * Periodic check to ensure any jutsu items that somehow escaped
-     * are returned to jutsu storage.
+     * are returned to jutsu storage, and verify missing jutsus are restored.
      */
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
+        }
+        
+        // Every 2 seconds (40 ticks), verify and restore any missing jutsus
+        // This handles cases where jutsus were put in creative storage/deleted
+        if (player.tickCount % 40 == 0) {
+            JutsuGrantHelper.verifyAndRestoreMissingJutsus(player, true);
         }
         
         // If player has a container open (other than jutsu storage), check every tick
@@ -148,7 +170,7 @@ public class JutsuItemEvents {
                 Slot slot = container.slots.get(i);
                 ItemStack stack = slot.getItem();
                 
-                if (stack.getItem() instanceof AbstractJutsuItem) {
+                if (isProtectedJutsuItem(stack)) {
                     // Check if this slot belongs to player's inventory
                     if (!(slot.container instanceof Inventory)) {
                         // Jutsu item in a non-player container slot - remove immediately

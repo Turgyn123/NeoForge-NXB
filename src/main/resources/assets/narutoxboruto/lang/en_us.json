@@ -21,6 +21,8 @@
   "item.narutoxboruto.samehada": "Samehada",
   "item.narutoxboruto.kubikiribocho": "Kubikiribocho",
   "item.narutoxboruto.shibuki": "Shibuki",
+  "item.narutoxboruto.kiba": "Kiba",
+  "item.narutoxboruto.kabutowari": "Kabutowari",
   "item.narutoxboruto.chakra_paper": "Chakra Paper",
   "item.narutoxboruto.clan_reroll":"Clan Reroll",
   "item.narutoxboruto.random_dna":"Random Dna Bottle",
@@ -48,6 +50,20 @@
   "item.narutoxboruto.fire_ball":"Fire Ball Jutsu",
   "item.narutoxboruto.fire_ball_jutsu":"Fire Ball Jutsu",
   "item.narutoxboruto.earth_wall_jutsu":"Earth Wall Jutsu",
+  "item.narutoxboruto.earth_wave_jutsu":"Earth Wave Jutsu",
+  "item.narutoxboruto.water_prison_jutsu":"Water Prison Jutsu",
+  "item.narutoxboruto.lightning_chakra_mode":"Lightning Chakra Mode",
+  
+  "jutsu.activate": "%s activated",
+  "jutsu.deactivate": "%s deactivated",
+  
+  "tooltip.lightning_chakra_mode.desc": "Envelop yourself in lightning chakra",
+  "tooltip.lightning_chakra_mode.effects": "Effects while active:",
+  "tooltip.lightning_chakra_mode.strength": "Strength II",
+  "tooltip.lightning_chakra_mode.speed": "Speed III",
+  "tooltip.chakra_cost": "Activation Cost: %s Chakra",
+  "tooltip.chakra_drain": "Drains %s Chakra every %s seconds",
+  "tooltip.requires_release": "Requires: %s Release",
   
   "container.narutoxboruto.jutsu_storage": "Jutsu Storage",
 
@@ -58,6 +74,8 @@
 
   "samehada.no_chakra": "No chakra left",
   "samehada.chakra_amount": "%s chakra in storage.",
+
+  "msg.kiba.no_lightning_release": "You need Lightning Release to use Kiba!",
 
   "key.category.narutoxboruto": "Naruto x Boruto",
   "key.category.chakra_recharge": "Chakra Recharge",
@@ -125,6 +143,7 @@
   "msg.narutoxboruto.rank": "You are an %s",
   "msg.no_chakra": "Not enough chakra",
   "msg.no_release": "You don't have the required nature release",
+  "msg.no_ground": "You must aim at the ground",
   "msg.narutoxboruto.release": "you start with %s release",
   "msg.narutoxboruto.releases": "you start with %s release",
 

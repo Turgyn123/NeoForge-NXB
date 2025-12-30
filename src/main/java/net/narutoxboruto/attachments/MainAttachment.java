@@ -3,6 +3,8 @@ package net.narutoxboruto.attachments;
 import net.narutoxboruto.attachments.info.*;
 import net.narutoxboruto.attachments.jutsus.*;
 import net.narutoxboruto.attachments.modes.ChakraControl;
+import net.narutoxboruto.attachments.modes.KibaActive;
+import net.narutoxboruto.attachments.modes.LightningChakraModeActive;
 import net.narutoxboruto.attachments.modes.NarutoRun;
 import net.narutoxboruto.attachments.stats.*;
 import net.neoforged.bus.api.IEventBus;
@@ -42,6 +44,8 @@ public class MainAttachment {
     public static final Supplier<AttachmentType<ReleaseList>> RELEASE_LIST = ATTACHMENT_TYPES.register("release_list", () -> AttachmentType.<ReleaseList>builder(() -> new ReleaseList()).serialize(ReleaseList.CODEC).copyOnDeath().build());
     public static final Supplier<AttachmentType<ChakraControl>> CHAKRA_CONTROL = ATTACHMENT_TYPES.register("chakra_control", () -> AttachmentType.<ChakraControl>builder(() -> new ChakraControl()).serialize(ChakraControl.CODEC).copyOnDeath().build());
     public static final Supplier<AttachmentType<NarutoRun>> NARUTO_RUN = ATTACHMENT_TYPES.register("naruto_run", () -> AttachmentType.<NarutoRun>builder(() -> new NarutoRun()).serialize(NarutoRun.CODEC).copyOnDeath().build());
+    public static final Supplier<AttachmentType<KibaActive>> KIBA_ACTIVE = ATTACHMENT_TYPES.register("kiba_active", () -> AttachmentType.<KibaActive>builder(() -> new KibaActive()).serialize(KibaActive.CODEC).build());
+    public static final Supplier<AttachmentType<LightningChakraModeActive>> LIGHTNING_CHAKRA_MODE_ACTIVE = ATTACHMENT_TYPES.register("lightning_chakra_mode_active", () -> AttachmentType.<LightningChakraModeActive>builder(() -> new LightningChakraModeActive()).serialize(LightningChakraModeActive.CODEC).build());
     public static final Supplier<AttachmentType<JutsuStorage>> JUTSU_STORAGE = ATTACHMENT_TYPES.register("jutsu_storage", () -> AttachmentType.<JutsuStorage>builder(() -> new JutsuStorage()).serialize(JutsuStorage.CODEC).copyOnDeath().build());
 
     public static void register(IEventBus modEventBus) {

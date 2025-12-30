@@ -37,6 +37,8 @@ public class ModTab {
                 output.accept(SAMEHADA.get());
                 output.accept(KUBIKIRIBOCHO.get());
                 output.accept(SHIBUKI.get());
+                output.accept(KIBA.get());
+                output.accept(KABUTOWARI.get());
                 //output.accept(NUIBARI.get());
             }).build());
 
@@ -94,6 +96,9 @@ public class ModTab {
             .displayItems((parameters, output) -> {
                 output.accept(FIRE_BALL_JUTSU.get());
                 output.accept(EARTH_WALL_JUTSU.get());
+                output.accept(EARTH_WAVE_JUTSU.get());
+                output.accept(WATER_PRISON_JUTSU.get());
+                output.accept(LIGHTNING_CHAKRA_MODE.get());
             }).build());
 
     public static void register(IEventBus eventBus) {CREATIVE_MODE_TAB.register(eventBus);}

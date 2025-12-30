@@ -9,10 +9,15 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.narutoxboruto.networking.ModPacketHandler;
 import net.narutoxboruto.networking.jutsu.SyncJutsuStorage;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Player attachment that stores the player's unlocked jutsus.
@@ -111,16 +116,133 @@ public class JutsuStorage {
     
     /**
      * Add a jutsu to the first available slot.
-     * @return true if added successfully, false if storage is full
+     * Will NOT add if the jutsu already exists in storage.
+     * @return true if added successfully, false if storage is full or jutsu already exists
      */
     public boolean addJutsu(ItemStack stack) {
+        // Check if we already have this jutsu type
+        if (hasJutsuByItem(stack.getItem())) {
+            return false;
+        }
+        
         for (int i = 0; i < STORAGE_SIZE; i++) {
             if (items.get(i).isEmpty()) {
-                items.set(i, stack.copy());
+                items.set(i, stack.copyWithCount(1)); // Always store exactly 1
                 return true;
             }
         }
         return false;
+    }
+    
+    /**
+     * Add a jutsu only if the player doesn't already have it in storage OR inventory.
+     * Use this when granting new jutsus to prevent duplicates.
+     * @return true if added successfully
+     */
+    public boolean addJutsuIfNotOwned(ItemStack stack, Player player) {
+        Item jutsuItem = stack.getItem();
+        
+        // Check storage
+        if (hasJutsuByItem(jutsuItem)) {
+            return false;
+        }
+        
+        // Check player inventory
+        if (playerHasJutsuInInventory(player, jutsuItem)) {
+            return false;
+        }
+        
+        return addJutsu(stack);
+    }
+    
+    /**
+     * Check if player has a specific jutsu item in their inventory.
+     */
+    public static boolean playerHasJutsuInInventory(Player player, Item jutsuItem) {
+        Inventory inventory = player.getInventory();
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack stack = inventory.getItem(i);
+            if (!stack.isEmpty() && stack.getItem() == jutsuItem) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Check if this storage contains a specific jutsu by Item reference.
+     */
+    public boolean hasJutsuByItem(Item jutsuItem) {
+        for (ItemStack stack : items) {
+            if (!stack.isEmpty() && stack.getItem() == jutsuItem) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Remove duplicate jutsus from storage. Keeps only one of each jutsu type.
+     * Also removes jutsus that exist in the player's inventory.
+     * @return the number of duplicates removed
+     */
+    public int removeDuplicates(Player player) {
+        Set<Item> seenJutsus = new HashSet<>();
+        int removed = 0;
+        
+        // First, add all jutsus from player inventory to the "seen" set
+        if (player != null) {
+            Inventory inventory = player.getInventory();
+            for (int i = 0; i < inventory.getContainerSize(); i++) {
+                ItemStack stack = inventory.getItem(i);
+                if (!stack.isEmpty()) {
+                    seenJutsus.add(stack.getItem());
+                }
+            }
+        }
+        
+        // Now clean up storage - remove any duplicates
+        for (int i = 0; i < STORAGE_SIZE; i++) {
+            ItemStack stack = items.get(i);
+            if (!stack.isEmpty()) {
+                Item item = stack.getItem();
+                if (seenJutsus.contains(item)) {
+                    // Duplicate found - remove it
+                    items.set(i, ItemStack.EMPTY);
+                    removed++;
+                } else {
+                    seenJutsus.add(item);
+                    // Ensure count is 1
+                    if (stack.getCount() > 1) {
+                        items.set(i, stack.copyWithCount(1));
+                    }
+                }
+            }
+        }
+        
+        // Compact storage - move items to fill gaps
+        if (removed > 0) {
+            compactStorage();
+        }
+        
+        return removed;
+    }
+    
+    /**
+     * Compact the storage by moving items to fill empty slots.
+     */
+    private void compactStorage() {
+        int writeIndex = 0;
+        for (int readIndex = 0; readIndex < STORAGE_SIZE; readIndex++) {
+            ItemStack stack = items.get(readIndex);
+            if (!stack.isEmpty()) {
+                if (writeIndex != readIndex) {
+                    items.set(writeIndex, stack);
+                    items.set(readIndex, ItemStack.EMPTY);
+                }
+                writeIndex++;
+            }
+        }
     }
     
     /**

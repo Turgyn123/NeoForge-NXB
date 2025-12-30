@@ -6,7 +6,10 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.SwordItem;
 import net.narutoxboruto.entities.ModEntities;
 import net.narutoxboruto.items.jutsus.EarthWall;
+import net.narutoxboruto.items.jutsus.EarthWave;
 import net.narutoxboruto.items.jutsus.FireBall;
+import net.narutoxboruto.items.jutsus.LightningChakraMode;
+import net.narutoxboruto.items.jutsus.WaterPrison;
 import net.narutoxboruto.items.misc.ChakraPaper;
 import net.narutoxboruto.items.misc.ClanReroll;
 import net.narutoxboruto.items.misc.RandomDna;
@@ -37,7 +40,9 @@ public class ModItems {
     public static final DeferredItem<Item> SAMEHADA = ITEMS.register("samehada", () -> new Samehada(new Item.Properties().stacksTo(1).attributes(SwordItem.createAttributes(SwordCustomTiers.SAMEHADA, 2, -2.5f))));
     public static final DeferredItem<Item> KUBIKIRIBOCHO = ITEMS.register("kubikiribocho", () -> new Kubikiribocho(new Item.Properties().stacksTo(1).attributes(SwordItem.createAttributes(SwordCustomTiers.KUBIKIRIBOCHO, 6, -3f))));
     public static final DeferredItem<Item> SHIBUKI = ITEMS.register("shibuki", () -> new Shibuki(new Item.Properties().stacksTo(1).attributes(SwordItem.createAttributes(SwordCustomTiers.SHIBUKI, 2, -2f))));
-    public static final DeferredItem<Item> NUIBARI = ITEMS.register("nuibari", () -> new Kabutowari(new Item.Properties().stacksTo(1).attributes(SwordItem.createAttributes(SwordCustomTiers.NUIBARI, 2, -1.5f))));
+    public static final DeferredItem<Item> NUIBARI = ITEMS.register("nuibari", () -> new Nuibari(new Item.Properties().stacksTo(1).attributes(SwordItem.createAttributes(SwordCustomTiers.NUIBARI, 2, -1.5f))));
+    public static final DeferredItem<Item> KABUTOWARI = ITEMS.register("kabutowari", () -> new Kabutowari(new Item.Properties().stacksTo(1).attributes(SwordItem.createAttributes(SwordCustomTiers.KABUTOWARI, 6, -3.0f))));
+    public static final DeferredItem<Item> KIBA = ITEMS.register("kiba", () -> new Kiba(new Item.Properties().stacksTo(1).attributes(SwordItem.createAttributes(SwordCustomTiers.KIBA, 4, -1.5f))));
 
     //MISC'S
     public static final DeferredItem<Item> CHAKRA_PAPER = ITEMS.register("chakra_paper", () -> new ChakraPaper(new Item.Properties().stacksTo(1)));
@@ -73,6 +78,9 @@ public class ModItems {
     //JUTSU ITEMS
     public static final DeferredItem<Item> FIRE_BALL_JUTSU = ITEMS.register("fire_ball_jutsu", () -> new FireBall(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<Item> EARTH_WALL_JUTSU = ITEMS.register("earth_wall_jutsu", () -> new EarthWall(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> EARTH_WAVE_JUTSU = ITEMS.register("earth_wave_jutsu", () -> new EarthWave(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> WATER_PRISON_JUTSU = ITEMS.register("water_prison_jutsu", () -> new WaterPrison(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> LIGHTNING_CHAKRA_MODE = ITEMS.register("lightning_chakra_mode", () -> new LightningChakraMode(new Item.Properties().stacksTo(1)));
 
     public static void register(IEventBus eventBus) {
        ITEMS.register(eventBus);
