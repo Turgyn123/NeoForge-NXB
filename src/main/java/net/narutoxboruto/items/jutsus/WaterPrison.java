@@ -17,11 +17,13 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.tags.FluidTags;
 import net.narutoxboruto.fluids.ModFluidBlocks;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -39,8 +41,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * - Entities inside are pulled to center and immobilized
  * - Causes suffocation damage over time
  * - Can target entities directly or place at location
- * - Maximum 2 prisons per player at a time
- * - 5 second cooldown
+ * - Maximum 1 prison per player at a time
+ * - 10 second cooldown
  * 
  * Uses ServerTickEvent instead of TickTask for reliable timing on integrated servers.
  */
@@ -48,9 +50,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class WaterPrison extends AbstractJutsuItem {
     
     private static final int CHAKRA_COST = 15;
-    private static final int COOLDOWN_TICKS = 100; // 5 seconds
+    private static final int COOLDOWN_TICKS = 200; // 10 seconds
     private static final int PRISON_DURATION_TICKS = 200; // 10 seconds
-    private static final int MAX_PRISONS_PER_PLAYER = 2;
+    private static final int MAX_PRISONS_PER_PLAYER = 1;
     private static final float SUFFOCATION_DAMAGE = 1.0f; // Half heart per second
     private static final int SUFFOCATION_INTERVAL = 20; // Damage every second
     private static final int TICK_INTERVAL = 5; // Process effects every 5 ticks
@@ -135,7 +137,7 @@ public class WaterPrison extends AbstractJutsuItem {
         List<PrisonData> playerPrisons = PLAYER_PRISONS.getOrDefault(player.getUUID(), new ArrayList<>());
         if (playerPrisons.size() >= MAX_PRISONS_PER_PLAYER) {
             serverPlayer.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("Maximum water prisons active (2)!")
+                    net.minecraft.network.chat.Component.literal("Maximum water prisons active (1)!")
                             .withStyle(net.minecraft.ChatFormatting.RED), true);
             return InteractionResultHolder.fail(stack);
         }
@@ -160,6 +162,9 @@ public class WaterPrison extends AbstractJutsuItem {
         Vec3 lookVec = player.getViewVector(1.0F);
         Vec3 endPos = eyePos.add(lookVec.scale(10.0)); // Extended range for block detection
         
+        // Check if player is in water
+        boolean playerInWater = player.isInWater();
+        
         // Check for entity target first
         AABB searchBox = player.getBoundingBox().expandTowards(lookVec.scale(5.0)).inflate(1.0);
         EntityHitResult entityHit = findEntityOnPath(level, player, eyePos, endPos, searchBox);
@@ -171,19 +176,33 @@ public class WaterPrison extends AbstractJutsuItem {
             // Direct entity target - center prison on them
             targetEntity = target;
             centerPos = target.blockPosition();
+        } else if (playerInWater) {
+            // Player is IN water - ignore water blocks, place prison 5 blocks away in air
+            // Treat water as air for placement purposes
+            Vec3 targetPos = eyePos.add(lookVec.scale(5.0));
+            centerPos = new BlockPos((int) Math.floor(targetPos.x), (int) Math.floor(targetPos.y), (int) Math.floor(targetPos.z));
         } else {
             // Smart placement - raycast to find what block/face player is looking at
+            // Use FLUIDS.SOURCE_ONLY to detect water surface as a hittable surface
             BlockHitResult blockHit = level.clip(new ClipContext(
                     eyePos, endPos,
                     ClipContext.Block.OUTLINE,
-                    ClipContext.Fluid.NONE,
+                    ClipContext.Fluid.SOURCE_ONLY, // Detect water surface!
                     player
             ));
             
             if (blockHit.getType() == HitResult.Type.BLOCK) {
-                // Player is looking at a block - smart placement!
-                // Position prison so its center face touches the clicked block surface
-                centerPos = calculateSmartPlacement(blockHit.getBlockPos(), blockHit.getDirection());
+                BlockState hitState = level.getBlockState(blockHit.getBlockPos());
+                
+                // Check if we hit water surface
+                if (hitState.getFluidState().is(FluidTags.WATER)) {
+                    // Clicked on water - treat it like a solid block for placement
+                    // Use top/side logic as if it were a block
+                    centerPos = calculateSmartPlacement(blockHit.getBlockPos(), blockHit.getDirection());
+                } else {
+                    // Player is looking at a solid block - smart placement!
+                    centerPos = calculateSmartPlacement(blockHit.getBlockPos(), blockHit.getDirection());
+                }
             } else {
                 // Air placement - place prison 5 blocks in front of player
                 Vec3 targetPos = eyePos.add(lookVec.scale(5.0));
@@ -236,16 +255,48 @@ public class WaterPrison extends AbstractJutsuItem {
     private boolean createPrison(ServerLevel level, ServerPlayer caster, BlockPos center, LivingEntity initialTarget) {
         Set<BlockPos> prisonBlocks = new HashSet<>();
         Map<BlockPos, BlockState> originalBlocks = new HashMap<>();
+        Set<BlockPos> positionsNeedingVanillaWater = new HashSet<>(); // Positions that should use vanilla water
         
-        // Create 3x3x3 water cube - no barriers, we contain with aggressive cleanup
+        // First pass: Identify all positions and check which ones are in/adjacent to existing water
         for (int x = -1; x <= 1; x++) {
             for (int y = 0; y <= 2; y++) {
                 for (int z = -1; z <= 1; z++) {
                     BlockPos pos = center.offset(x, y, z);
                     BlockState currentState = level.getBlockState(pos);
                     
-                    // Skip bedrock and grass blocks (terrain)
-                    if (currentState.is(Blocks.BEDROCK) || currentState.is(Blocks.GRASS_BLOCK)) {
+                    // Check if this position or any horizontally adjacent block contains water
+                    // Only check same Y level to prevent water below from causing flow issues
+                    boolean adjacentToWater = false;
+                    if (currentState.getFluidState().is(FluidTags.WATER)) {
+                        adjacentToWater = true;
+                    } else {
+                        // Check only horizontal neighbors (same Y level) for water
+                        for (Direction dir : Direction.Plane.HORIZONTAL) {
+                            BlockPos adjacent = pos.relative(dir);
+                            if (level.getBlockState(adjacent).getFluidState().is(FluidTags.WATER)) {
+                                adjacentToWater = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (adjacentToWater) {
+                        positionsNeedingVanillaWater.add(pos);
+                    }
+                    
+                    // Skip existing water blocks - don't replace them!
+                    if (currentState.getFluidState().is(FluidTags.WATER)) {
+                        // Still track this position for entity containment
+                        prisonBlocks.add(pos);
+                        // Don't store original state since we're not changing it
+                        continue;
+                    }
+                    
+                    // Skip solid terrain blocks - leave terrain as is!
+                    // Only replace air and non-solid blocks (plants, snow, etc)
+                    if (currentState.isSolidRender(level, pos)) {
+                        // Still track for entity containment but don't modify
+                        prisonBlocks.add(pos);
                         continue;
                     }
                     
@@ -260,10 +311,26 @@ public class WaterPrison extends AbstractJutsuItem {
             return false;
         }
         
-        // Place static water (custom fluid that doesn't flow)
+        // Track if ANY position uses vanilla water (for tick/cleanup logic)
+        boolean anyVanillaWater = false;
+        
+        // Place water - use vanilla water for positions adjacent to existing water,
+        // static water for positions in air (to prevent flowing messes)
         BlockState staticWater = ModFluidBlocks.STATIC_WATER_BLOCK.get().defaultBlockState();
+        BlockState vanillaWater = Blocks.WATER.defaultBlockState();
+        
         for (BlockPos pos : prisonBlocks) {
-            level.setBlock(pos, staticWater, Block.UPDATE_CLIENTS);
+            // Only place water if we stored the original (meaning it wasn't already water or solid)
+            if (originalBlocks.containsKey(pos)) {
+                if (positionsNeedingVanillaWater.contains(pos)) {
+                    // Adjacent to existing water - use vanilla to blend in
+                    level.setBlock(pos, vanillaWater, Block.UPDATE_CLIENTS);
+                    anyVanillaWater = true;
+                } else {
+                    // In air/not adjacent to water - use static water to prevent flow
+                    level.setBlock(pos, staticWater, Block.UPDATE_CLIENTS);
+                }
+            }
         }
         
         // Play water sound
@@ -294,7 +361,8 @@ public class WaterPrison extends AbstractJutsuItem {
             prisonCenter,
             prisonBounds,
             pullZone,
-            PRISON_DURATION_TICKS
+            PRISON_DURATION_TICKS,
+            anyVanillaWater  // Track if any positions use vanilla water
         );
         
         // Add to player's prison list
@@ -313,39 +381,48 @@ public class WaterPrison extends AbstractJutsuItem {
         }
         
         ServerLevel level = prison.level;
-        BlockState staticWater = ModFluidBlocks.STATIC_WATER_BLOCK.get().defaultBlockState();
         BlockPos center = prison.center;
         
-        // Maintain static water blocks inside prison - only replace if destroyed
-        for (BlockPos pos : prison.waterBlocks) {
-            BlockState current = level.getBlockState(pos);
-            if (!current.is(ModFluidBlocks.STATIC_WATER_BLOCK.get())) {
-                level.setBlock(pos, staticWater, Block.UPDATE_CLIENTS);
+        // Only maintain water blocks if using static water (not in/near vanilla water)
+        if (!prison.usingVanillaWater) {
+            BlockState staticWater = ModFluidBlocks.STATIC_WATER_BLOCK.get().defaultBlockState();
+            
+            // Maintain static water blocks inside prison - only replace if destroyed
+            for (BlockPos pos : prison.waterBlocks) {
+                // Only maintain blocks we actually placed (stored in originalBlocks)
+                if (!prison.originalBlocks.containsKey(pos)) {
+                    continue;
+                }
+                BlockState current = level.getBlockState(pos);
+                if (!current.is(ModFluidBlocks.STATIC_WATER_BLOCK.get())) {
+                    level.setBlock(pos, staticWater, Block.UPDATE_CLIENTS);
+                }
             }
-        }
-        
-        // AGGRESSIVE FLOW CLEANUP - Remove ANY water that escaped the prison bounds
-        // Check 3-block radius around prison for any flowing water
-        for (int x = -4; x <= 4; x++) {
-            for (int y = -2; y <= 5; y++) {
-                for (int z = -4; z <= 4; z++) {
-                    BlockPos checkPos = center.offset(x, y, z);
-                    
-                    // Skip positions that are part of the prison itself
-                    if (prison.waterBlocks.contains(checkPos)) {
-                        continue;
-                    }
-                    
-                    // If there's water here, it escaped - remove it immediately
-                    BlockState state = level.getBlockState(checkPos);
-                    if (state.is(Blocks.WATER)) {
-                        // Restore to air (or original block if we saved it)
-                        BlockState original = prison.originalBlocks.getOrDefault(checkPos, Blocks.AIR.defaultBlockState());
-                        level.setBlock(checkPos, original, Block.UPDATE_CLIENTS);
+            
+            // AGGRESSIVE FLOW CLEANUP - Remove ANY water that escaped the prison bounds
+            // Check 3-block radius around prison for any flowing water
+            for (int x = -4; x <= 4; x++) {
+                for (int y = -2; y <= 5; y++) {
+                    for (int z = -4; z <= 4; z++) {
+                        BlockPos checkPos = center.offset(x, y, z);
+                        
+                        // Skip positions that are part of the prison itself
+                        if (prison.waterBlocks.contains(checkPos)) {
+                            continue;
+                        }
+                        
+                        // If there's vanilla water here that we didn't place, it might have escaped
+                        // Only clean up if we have an original block stored for this position
+                        BlockState state = level.getBlockState(checkPos);
+                        if (state.is(Blocks.WATER) && prison.originalBlocks.containsKey(checkPos)) {
+                            BlockState original = prison.originalBlocks.get(checkPos);
+                            level.setBlock(checkPos, original, Block.UPDATE_CLIENTS);
+                        }
                     }
                 }
             }
         }
+        // If using vanilla water, we don't maintain blocks - they flow naturally
         
         // Entity handling - PULL zone and complete immobilization inside
         Vec3 prisonCenter = prison.prisonCenter;
@@ -451,24 +528,37 @@ public class WaterPrison extends AbstractJutsuItem {
         
         ServerLevel level = prison.level;
         
-        // Restore all original blocks (static water positions and any cleanup positions)
+        // Restore all original blocks (only the ones we actually changed)
         for (Map.Entry<BlockPos, BlockState> entry : prison.originalBlocks.entrySet()) {
             BlockPos pos = entry.getKey();
             BlockState originalState = entry.getValue();
             BlockState currentState = level.getBlockState(pos);
             
-            // Remove if it's still static water
-            if (currentState.is(ModFluidBlocks.STATIC_WATER_BLOCK.get())) {
-                level.setBlock(pos, originalState, 3);
+            // Check what type of water we need to clean up
+            if (prison.usingVanillaWater) {
+                // If using vanilla water, only restore blocks we explicitly changed
+                if (currentState.is(Blocks.WATER) && prison.waterBlocks.contains(pos)) {
+                    level.setBlock(pos, originalState, 3);
+                }
+            } else {
+                // Remove if it's still static water
+                if (currentState.is(ModFluidBlocks.STATIC_WATER_BLOCK.get())) {
+                    level.setBlock(pos, originalState, 3);
+                }
             }
         }
         
-        // Also cleanup any static water that might be in the prison area
-        for (BlockPos pos : prison.waterBlocks) {
-            BlockState currentState = level.getBlockState(pos);
-            if (currentState.is(ModFluidBlocks.STATIC_WATER_BLOCK.get())) {
-                BlockState original = prison.originalBlocks.getOrDefault(pos, Blocks.AIR.defaultBlockState());
-                level.setBlock(pos, original, 3);
+        // Also cleanup any remaining static water in the prison area (if not using vanilla)
+        if (!prison.usingVanillaWater) {
+            for (BlockPos pos : prison.waterBlocks) {
+                if (!prison.originalBlocks.containsKey(pos)) {
+                    continue; // Don't touch blocks we didn't change
+                }
+                BlockState currentState = level.getBlockState(pos);
+                if (currentState.is(ModFluidBlocks.STATIC_WATER_BLOCK.get())) {
+                    BlockState original = prison.originalBlocks.getOrDefault(pos, Blocks.AIR.defaultBlockState());
+                    level.setBlock(pos, original, 3);
+                }
             }
         }
         
@@ -536,12 +626,14 @@ public class WaterPrison extends AbstractJutsuItem {
         final Vec3 prisonCenter;
         final AABB prisonBounds;
         final AABB pullZone;
+        final boolean usingVanillaWater; // True if prison is in/near water, uses vanilla water
         int ticksRemaining;
         boolean isActive = true;
         
         PrisonData(ServerLevel level, BlockPos center, Set<BlockPos> waterBlocks,
                    Map<BlockPos, BlockState> originalBlocks, 
-                   UUID casterUUID, Vec3 prisonCenter, AABB prisonBounds, AABB pullZone, int duration) {
+                   UUID casterUUID, Vec3 prisonCenter, AABB prisonBounds, AABB pullZone, 
+                   int duration, boolean usingVanillaWater) {
             this.level = level;
             this.center = center;
             this.waterBlocks = waterBlocks;
@@ -551,6 +643,7 @@ public class WaterPrison extends AbstractJutsuItem {
             this.prisonBounds = prisonBounds;
             this.pullZone = pullZone;
             this.ticksRemaining = duration;
+            this.usingVanillaWater = usingVanillaWater;
         }
     }
 }

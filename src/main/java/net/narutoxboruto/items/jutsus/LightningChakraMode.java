@@ -4,8 +4,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -20,7 +18,7 @@ import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.info.Chakra;
 import net.narutoxboruto.attachments.info.ReleaseList;
 import net.narutoxboruto.attachments.modes.LightningChakraModeActive;
-import net.narutoxboruto.particles.ModParticles;
+import net.narutoxboruto.entities.effects.LightningArcEntity;
 import net.narutoxboruto.util.ModUtil;
 
 import java.util.List;
@@ -49,8 +47,8 @@ public class LightningChakraMode extends Item {
     private static final int DRAIN_COST = 5;
     private static final int DRAIN_INTERVAL_SECONDS = 5;
     
-    // Effect durations - long enough to persist between ticks (7 seconds, refreshed every 5)
-    private static final int EFFECT_DURATION = 140; // 7 seconds in ticks
+    // Effect durations - infinite (-1) so they persist while mode is active
+    private static final int EFFECT_DURATION = -1; // Infinite duration
     private static final int STRENGTH_AMPLIFIER = 1; // Strength II (0-indexed)
     private static final int SPEED_AMPLIFIER = 2; // Speed III (0-indexed)
 
@@ -101,14 +99,10 @@ public class LightningChakraMode extends Item {
             // Apply initial effects
             applyEffects(serverPlayer);
             
-            // Play activation sound
-            level.playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-                    SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.5f, 1.5f);
+            // No sound effect - owner will provide custom sounds later
             
-            // Spawn activation burst particles
-            if (level instanceof ServerLevel serverLevel) {
-                spawnLightningParticles(serverLevel, serverPlayer, 30);
-            }
+            // NOTE: Activation particles now handled by client-side burst system in KibaLightningOverlay
+            // which detects state change and renders intense lightning for 0.5 seconds
             
             serverPlayer.displayClientMessage(
                     Component.translatable("jutsu.activate", Component.translatable("item.narutoxboruto.lightning_chakra_mode")), true);
@@ -120,9 +114,7 @@ public class LightningChakraMode extends Item {
             serverPlayer.removeEffect(MobEffects.DAMAGE_BOOST);
             serverPlayer.removeEffect(MobEffects.MOVEMENT_SPEED);
             
-            // Play deactivation sound
-            level.playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-                    SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 0.5f, 1.2f);
+            // No sound effect - owner will provide custom sounds later
             
             serverPlayer.displayClientMessage(
                     Component.translatable("jutsu.deactivate", Component.translatable("item.narutoxboruto.lightning_chakra_mode")), true);
@@ -133,15 +125,17 @@ public class LightningChakraMode extends Item {
     
     /**
      * Apply Strength II and Speed III effects to the player.
+     * Particles are hidden since we have custom lightning aura.
      */
     public static void applyEffects(ServerPlayer player) {
         // Strength II (amplifier 1 = level 2)
+        // Hide potion particles since we have lightning aura
         player.addEffect(new MobEffectInstance(
                 MobEffects.DAMAGE_BOOST,
                 EFFECT_DURATION,
                 STRENGTH_AMPLIFIER,
                 false, // Not ambient
-                true,  // Show particles
+                false, // Hide particles - we have lightning aura instead
                 true   // Show icon
         ));
         
@@ -151,40 +145,52 @@ public class LightningChakraMode extends Item {
                 EFFECT_DURATION,
                 SPEED_AMPLIFIER,
                 false,
-                true,
+                false, // Hide particles
                 true
         ));
     }
     
+    // Lightning Chakra Mode color - cyan/electric blue (matching reference image)
+    private static final int LIGHTNING_AURA_COLOR = 0xE040E0FF; // Bright cyan-blue
+    
     /**
-     * Spawn lightning particles around the player.
-     * Uses the same particle system as Kiba.
+     * Spawn lightning aura around the player using the LightningArcEntity system.
+     * Creates a continuous shell of lightning arcs around the player body.
      */
     public static void spawnLightningParticles(ServerLevel level, ServerPlayer player, int count) {
-        double radius = 0.8;
+        // Spawn more frequent, larger lightning arcs for visible aura effect
+        // Increased count and longer duration for persistent aura
+        LightningArcEntity.spawnArcsAroundEntity(level, player, count, LIGHTNING_AURA_COLOR, 6);
+        
+        // Also spawn some vertical arcs running up the body for "chakra cloak" effect
+        spawnVerticalAuraArcs(level, player, 3);
+    }
+    
+    /**
+     * Spawn vertical lightning arcs running up/down the player body for aura effect.
+     */
+    private static void spawnVerticalAuraArcs(ServerLevel level, ServerPlayer player, int count) {
+        double radius = player.getBbWidth() * 0.4;
         double height = player.getBbHeight();
         
         for (int i = 0; i < count; i++) {
-            // Random position around the player
             double angle = Math.random() * Math.PI * 2;
-            double yOffset = Math.random() * height;
-            double r = radius * (0.5 + Math.random() * 0.5);
+            double x = player.getX() + Math.cos(angle) * radius;
+            double z = player.getZ() + Math.sin(angle) * radius;
             
-            double x = player.getX() + Math.cos(angle) * r;
-            double y = player.getY() + yOffset;
-            double z = player.getZ() + Math.sin(angle) * r;
+            // Vertical arc from feet to head with slight curve
+            double startY = player.getY() + Math.random() * 0.3;
+            double endY = player.getY() + height * (0.7 + Math.random() * 0.3);
+            double endX = x + (Math.random() - 0.5) * 0.3;
+            double endZ = z + (Math.random() - 0.5) * 0.3;
             
-            // Random velocity for dynamic effect
-            double vx = (Math.random() - 0.5) * 0.1;
-            double vy = (Math.random() - 0.3) * 0.1; // Slight upward bias
-            double vz = (Math.random() - 0.5) * 0.1;
-            
-            level.sendParticles(
-                    ModParticles.LIGHTNING_SPARKS.get(),
-                    x, y, z,
-                    1,
-                    vx, vy, vz,
-                    0.02D
+            LightningArcEntity.spawnArcBetween(
+                    level,
+                    new Vec3(x, startY, z),
+                    new Vec3(endX, endY, endZ),
+                    LIGHTNING_AURA_COLOR,
+                    5,
+                    0.02f
             );
         }
     }
@@ -197,18 +203,21 @@ public class LightningChakraMode extends Item {
         LightningChakraModeActive modeActive = serverPlayer.getData(MainAttachment.LIGHTNING_CHAKRA_MODE_ACTIVE);
         
         if (modeActive.isActive()) {
-            // Check if player still has the jutsu in hotbar
-            boolean hasJutsuInHotbar = false;
-            for (int i = 0; i < 9; i++) {
+            // Check if player still has the jutsu in inventory (hotbar OR main inventory)
+            // But NOT in jutsu storage - placing in jutsu storage should deactivate
+            boolean hasJutsuInInventory = false;
+            
+            // Check all inventory slots (0-35: hotbar + main inventory)
+            for (int i = 0; i < serverPlayer.getInventory().getContainerSize(); i++) {
                 ItemStack stack = serverPlayer.getInventory().getItem(i);
                 if (stack.getItem() instanceof LightningChakraMode) {
-                    hasJutsuInHotbar = true;
+                    hasJutsuInInventory = true;
                     break;
                 }
             }
             
-            if (!hasJutsuInHotbar) {
-                // Auto-deactivate if not in hotbar
+            if (!hasJutsuInInventory) {
+                // Auto-deactivate if not in player inventory (moved to jutsu storage or dropped)
                 deactivate(serverPlayer);
                 return;
             }
@@ -221,17 +230,22 @@ public class LightningChakraMode extends Item {
                 
                 // Refresh effects
                 applyEffects(serverPlayer);
-                
-                // Spawn ambient particles
-                if (serverPlayer.level() instanceof ServerLevel serverLevel) {
-                    spawnLightningParticles(serverLevel, serverPlayer, 8);
-                }
             } else {
                 // Not enough chakra - deactivate
                 deactivate(serverPlayer);
                 serverPlayer.displayClientMessage(Component.translatable("msg.no_chakra"), true);
             }
         }
+    }
+    
+    /**
+     * Called by StatEvents every second to spawn visual lightning aura.
+     * NOTE: Visual effects now handled entirely by client-side KibaLightningOverlay
+     * which renders lightning directly on the player model with proper positioning.
+     */
+    public static void tickVisualEffects(ServerPlayer serverPlayer) {
+        // Visual effects now handled client-side - see KibaLightningOverlay
+        // Keeping method signature for compatibility with StatEvents
     }
     
     /**
@@ -245,9 +259,16 @@ public class LightningChakraMode extends Item {
         serverPlayer.removeEffect(MobEffects.DAMAGE_BOOST);
         serverPlayer.removeEffect(MobEffects.MOVEMENT_SPEED);
         
-        // Play deactivation sound
-        serverPlayer.level().playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
-                SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 0.5f, 1.2f);
+        // Restore stat-based speed effect if player has speed points
+        net.narutoxboruto.attachments.stats.Speed speed = serverPlayer.getData(MainAttachment.SPEED);
+        int speedLevel = speed.getValue() / 10;
+        if (speedLevel > 0) {
+            serverPlayer.addEffect(new MobEffectInstance(
+                    MobEffects.MOVEMENT_SPEED, -1, speedLevel - 1,
+                    false, false, true));
+        }
+        
+        // No sound effect - owner will provide custom sounds later
     }
     
     public static int getDrainCost() {

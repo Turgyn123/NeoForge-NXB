@@ -38,7 +38,9 @@ public class StatEvents {
     private static final Map<UUID, Integer> playerDamageCounters = new HashMap<>();
     private static final Map<UUID, Integer> playerThrowCounters = new HashMap<>(); // NEW: Counter for tracking thrown items
     private static final Map<UUID, Integer> kibaDrainTimers = new HashMap<>(); // Timer for Kiba chakra drain
+    private static final Map<UUID, Integer> kibaVisualTimers = new HashMap<>(); // Timer for Kiba visual effects (every 10 ticks)
     private static final Map<UUID, Integer> lightningChakraModeDrainTimers = new HashMap<>(); // Timer for Lightning Chakra Mode drain
+    private static final Map<UUID, Integer> lightningChakraModeVisualTimers = new HashMap<>(); // Timer for Lightning Chakra Mode visual effects (every 20 ticks)
     private static boolean taiFlag, kenFlag;
     private static int chakraDrainTimer;
 
@@ -239,6 +241,12 @@ public class StatEvents {
             }
         }
     }
+    
+    @SubscribeEvent
+    public static void kibaVisualEffects(PlayerTickEvent.Post event) {
+        // Kiba sword lightning effects are now handled client-side in KibaLightningOverlay
+        // This method is kept for potential future server-side effects
+    }
 
     @SubscribeEvent
     public static void lightningChakraModeChakraDrain(PlayerTickEvent.Post event) {
@@ -254,5 +262,11 @@ public class StatEvents {
                 LightningChakraMode.tickChakraDrain(serverPlayer);
             }
         }
+    }
+    
+    @SubscribeEvent
+    public static void lightningChakraModeVisualEffects(PlayerTickEvent.Post event) {
+        // Lightning Chakra Mode cloak effects are now handled client-side in KibaLightningOverlay
+        // This method is kept for potential future server-side effects
     }
 }

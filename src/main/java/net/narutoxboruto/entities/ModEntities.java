@@ -4,6 +4,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.narutoxboruto.entities.effects.LightningArcEntity;
 import net.narutoxboruto.entities.shinobis.JinpachiMunashi;
 import net.narutoxboruto.entities.shinobis.KizameHoshigaki;
 import net.narutoxboruto.entities.shinobis.ZabuzaMomochi;
@@ -29,6 +30,15 @@ public class ModEntities {
 
     //JUTSUS
     public static final DeferredHolder<EntityType<?>, EntityType<FireBallEntity>> FIRE_BALL = registerEntity("fire_ball", FireBallEntity::new, MobCategory.MISC, 1.0F, 1.0F);
+
+    //EFFECTS
+    public static final DeferredHolder<EntityType<?>, EntityType<LightningArcEntity>> LIGHTNING_ARC = 
+            MOD_ENTITIES.register("lightning_arc", () -> EntityType.Builder.<LightningArcEntity>of(LightningArcEntity::new, MobCategory.MISC)
+                    .sized(0.1F, 0.1F)
+                    .clientTrackingRange(16)
+                    .updateInterval(1)
+                    .fireImmune()
+                    .build("lightning_arc"));
 
     //BOSSES
     public static final DeferredHolder<EntityType<?>, EntityType<KizameHoshigaki>> KISAME_HOSHIGAKI = registerEntity("kisame_hoshigaki", KizameHoshigaki::new, MobCategory.MONSTER, 0.6F, 1.8F);

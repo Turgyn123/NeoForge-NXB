@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.jutsus.JutsuStorage;
 import net.narutoxboruto.items.jutsus.AbstractJutsuItem;
+import net.narutoxboruto.items.jutsus.LightningChakraMode;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
@@ -74,7 +75,9 @@ public class JutsuStorageMenu extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            return stack.getItem() instanceof AbstractJutsuItem;
+            // Accept AbstractJutsuItem and special toggle jutsus like LightningChakraMode
+            return stack.getItem() instanceof AbstractJutsuItem 
+                || stack.getItem() instanceof LightningChakraMode;
         }
     }
 

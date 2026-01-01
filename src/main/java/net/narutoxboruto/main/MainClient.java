@@ -4,11 +4,13 @@ import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.narutoxboruto.client.gui.JutsuStorageScreen;
 import net.narutoxboruto.client.model.FireBallModel;
 import net.narutoxboruto.client.renderer.entity.*;
+import net.narutoxboruto.client.renderer.item.KibaClientExtension;
 import net.narutoxboruto.client.renderer.shinobi.AbstractShinobiRender;
 import net.narutoxboruto.entities.ModEntities;
 import net.narutoxboruto.fluids.ModFluidBlocks;
 import net.narutoxboruto.fluids.ModFluids;
 import net.narutoxboruto.fluids.StaticWaterClientExtension;
+import net.narutoxboruto.items.ModItems;
 import net.narutoxboruto.menu.ModMenuTypes;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
@@ -47,6 +49,9 @@ public class MainClient {
     static void onRegisterClientExtensions(RegisterClientExtensionsEvent event) {
         // Register static water fluid rendering with water textures
         event.registerFluidType(StaticWaterClientExtension.INSTANCE, ModFluids.STATIC_WATER_TYPE.get());
+        
+        // Register custom renderer for Kiba sword (lightning effects)
+        event.registerItem(KibaClientExtension.INSTANCE, ModItems.KIBA.get());
     }
 
     @SubscribeEvent
@@ -66,6 +71,7 @@ public class MainClient {
             EntityRenderers.register(ModEntities.SENBON.get(), SenbonRenderer::new);
             EntityRenderers.register(ModEntities.FUMA_SHURIKEN.get(), FumaShurikenRenderer::new);
             EntityRenderers.register(ModEntities.FIRE_BALL.get(), FireBallRenderer::new);
+            EntityRenderers.register(ModEntities.LIGHTNING_ARC.get(), LightningArcRenderer::new);
 
             EntityRenderers.register(ModEntities.JINPACHI_MUNASHI.get(),
                     (ctx) -> new AbstractShinobiRender(ctx, "jinpachi_munashi", true));

@@ -18,7 +18,7 @@ import net.narutoxboruto.attachments.MainAttachment;
 import net.narutoxboruto.attachments.info.Chakra;
 import net.narutoxboruto.attachments.info.ReleaseList;
 import net.narutoxboruto.attachments.modes.KibaActive;
-import net.narutoxboruto.particles.ModParticles;
+import net.narutoxboruto.entities.effects.LightningArcEntity;
 
 import java.util.List;
 
@@ -72,10 +72,8 @@ public class Kiba extends SwordItem implements Vanishable {
             // Toggle the ability
             kibaActive.toggle(serverPlayer);
             
-            // Spawn activation particles burst - arcing off the sword
-            if (kibaActive.isActive() && serverPlayer.level() instanceof ServerLevel serverLevel) {
-                spawnSwordArcParticles(serverLevel, serverPlayer, 20);
-            }
+            // NOTE: Activation particles now handled by client-side burst system in MixinItemRenderer
+            // which detects state change and renders intense lightning for 0.5 seconds
             
             String messageKey = kibaActive.isActive() ? "sword_ability.activate" : "sword_ability.deactivate";
             serverPlayer.displayClientMessage(
@@ -146,11 +144,6 @@ public class Kiba extends SwordItem implements Vanishable {
             
             if (chakra.getValue() >= CHAKRA_DRAIN_PER_SECOND) {
                 chakra.subValue(CHAKRA_DRAIN_PER_SECOND, serverPlayer);
-                
-                // Spawn ambient lightning arcs around the sword while active
-                if (serverPlayer.level() instanceof ServerLevel serverLevel) {
-                    spawnSwordArcParticles(serverLevel, serverPlayer, 3);
-                }
             } else {
                 // Not enough chakra - deactivate immediately
                 kibaActive.setActive(false, serverPlayer);
@@ -159,30 +152,48 @@ public class Kiba extends SwordItem implements Vanishable {
             }
         }
     }
+    
+    /**
+     * Called by StatEvents every half second (10 ticks) to spawn visual lightning aura.
+     * NOTE: Visual effects now handled entirely by client-side MixinItemRenderer
+     * which renders lightning directly on the sword model with proper positioning.
+     */
+    public static void tickVisualEffects(ServerPlayer serverPlayer) {
+        // Visual effects now handled client-side - see MixinItemRenderer
+        // Keeping method signature for compatibility with StatEvents
+    }
 
     public static int getChakraDrainPerSecond() {
         return CHAKRA_DRAIN_PER_SECOND;
     }
 
+    // Lightning color for Kiba - bright electric blue/cyan (matching reference image)
+    private static final int KIBA_LIGHTNING_COLOR = 0xE060FFFF; // Bright cyan-blue
+
     /**
-     * Spawns lightning arcs coming off the sword position.
-     * Creates actual arc shapes by spawning particles along curved paths.
+     * Spawns lightning aura around the sword using the LightningArcEntity system.
+     * Creates both arcs emanating from the blade AND an aura wrapping around it.
      */
     public static void spawnSwordArcParticles(ServerLevel serverLevel, ServerPlayer player, int arcCount) {
-        // Get the sword tip position (in front of player, offset by arm/sword length)
-        Vec3 lookVec = player.getViewVector(1.0F);
-        Vec3 rightVec = lookVec.cross(new Vec3(0, 1, 0)).normalize();
+        // Get player facing direction (horizontal only)
+        float yaw = player.getYRot() * ((float)Math.PI / 180F);
         
-        // Sword is held to the right side, tip extends forward
-        double swordBaseX = player.getX() + rightVec.x * 0.3;
-        double swordBaseY = player.getY() + 1.0;
-        double swordBaseZ = player.getZ() + rightVec.z * 0.3;
+        // Right hand offset (sword held to the right of player)
+        double rightX = -Math.cos(yaw) * 0.35;
+        double rightZ = -Math.sin(yaw) * 0.35;
         
-        double swordTipX = swordBaseX + lookVec.x * 1.0;
-        double swordTipY = swordBaseY + 0.3;
-        double swordTipZ = swordBaseZ + lookVec.z * 1.0;
+        // Sword base is at hand level (right side of player)
+        double swordBaseX = player.getX() + rightX;
+        double swordBaseY = player.getY() + 0.9; // Hand height
+        double swordBaseZ = player.getZ() + rightZ;
         
-        // Spawn multiple arc "bolts"
+        // Sword tip extends UPWARD (blade points up when held)
+        // Slight forward tilt based on player look
+        double swordTipX = swordBaseX + Math.sin(yaw) * 0.15; // Slight forward tilt
+        double swordTipY = swordBaseY + 1.1; // Blade extends upward
+        double swordTipZ = swordBaseZ - Math.cos(yaw) * 0.15;
+        
+        // Spawn small lightning sparks emanating FROM the blade
         for (int arc = 0; arc < arcCount; arc++) {
             // Random start point along the blade
             double t = Math.random();
@@ -190,72 +201,150 @@ public class Kiba extends SwordItem implements Vanishable {
             double startY = swordBaseY + (swordTipY - swordBaseY) * t;
             double startZ = swordBaseZ + (swordTipZ - swordBaseZ) * t;
             
-            // Random end point - arc destination
-            double arcLength = 0.5 + Math.random() * 0.8;
+            // Smaller arcs for subtle sparks
+            double arcLength = 0.2 + Math.random() * 0.3;
             double arcAngle = Math.random() * Math.PI * 2;
-            double arcPitch = (Math.random() - 0.3) * Math.PI * 0.5; // Slight upward bias
+            double arcPitch = (Math.random() - 0.3) * Math.PI * 0.5;
             
             double endX = startX + Math.cos(arcAngle) * Math.cos(arcPitch) * arcLength;
             double endY = startY + Math.sin(arcPitch) * arcLength;
             double endZ = startZ + Math.sin(arcAngle) * Math.cos(arcPitch) * arcLength;
             
-            // Spawn particles along the arc path with jagged offsets
-            spawnLightningBolt(serverLevel, startX, startY, startZ, endX, endY, endZ, 6);
-        }
-    }
-    
-    /**
-     * Spawns a lightning bolt between two points.
-     * Creates a jagged line of particles that looks like an electric arc.
-     */
-    private static void spawnLightningBolt(ServerLevel serverLevel, 
-            double startX, double startY, double startZ,
-            double endX, double endY, double endZ, int segments) {
-        
-        double prevX = startX;
-        double prevY = startY;
-        double prevZ = startZ;
-        
-        for (int i = 1; i <= segments; i++) {
-            double progress = (double) i / segments;
-            
-            // Base position along the line
-            double baseX = startX + (endX - startX) * progress;
-            double baseY = startY + (endY - startY) * progress;
-            double baseZ = startZ + (endZ - startZ) * progress;
-            
-            // Add jagged offset (less at endpoints, more in middle)
-            double jaggedStrength = 0.15 * Math.sin(progress * Math.PI); // Peak in middle
-            double offsetX = (Math.random() - 0.5) * jaggedStrength;
-            double offsetY = (Math.random() - 0.5) * jaggedStrength;
-            double offsetZ = (Math.random() - 0.5) * jaggedStrength;
-            
-            double currentX = baseX + offsetX;
-            double currentY = baseY + offsetY;
-            double currentZ = baseZ + offsetZ;
-            
-            // Velocity points toward next segment for "flowing" effect
-            double vx = (currentX - prevX) * 0.5;
-            double vy = (currentY - prevY) * 0.5;
-            double vz = (currentZ - prevZ) * 0.5;
-            
-            // Use custom lightning sparks particle
-            serverLevel.sendParticles(
-                    ModParticles.LIGHTNING_SPARKS.get(),
-                    currentX, currentY, currentZ,
-                    1,
-                    vx, vy, vz,
-                    0.01D
+            // Small sparks with moderate duration
+            LightningArcEntity.spawnArcBetween(
+                    serverLevel,
+                    new Vec3(startX, startY, startZ),
+                    new Vec3(endX, endY, endZ),
+                    KIBA_LIGHTNING_COLOR,
+                    8, // Longer duration for persistence
+                    0.015f + (float)(Math.random() * 0.01f)
             );
+        }
+        
+        // Spawn persistent aura arcs ALONG the blade (wrapping around the sword) - longer duration for glow effect
+        spawnSwordAura(serverLevel, player, swordBaseX, swordBaseY, swordBaseZ, swordTipX, swordTipY, swordTipZ, 3);
+    }
+    
+    /**
+     * Spawn lightning aura that envelops and wraps around the sword blade.
+     * Creates a coating effect with arcs running along the blade and wrapping around it.
+     */
+    private static void spawnSwordAura(ServerLevel serverLevel, ServerPlayer player, 
+            double baseX, double baseY, double baseZ, double tipX, double tipY, double tipZ, int count) {
+        
+        // Blade direction vector
+        double bladeX = tipX - baseX;
+        double bladeY = tipY - baseY;
+        double bladeZ = tipZ - baseZ;
+        double bladeLength = Math.sqrt(bladeX * bladeX + bladeY * bladeY + bladeZ * bladeZ);
+        
+        // Normalize blade vector
+        double bladeDirX = bladeX / bladeLength;
+        double bladeDirY = bladeY / bladeLength;
+        double bladeDirZ = bladeZ / bladeLength;
+        
+        // Get perpendicular vectors for wrapping around the blade
+        Vec3 bladeDir = new Vec3(bladeDirX, bladeDirY, bladeDirZ);
+        Vec3 up = new Vec3(0, 1, 0);
+        Vec3 perpA = bladeDir.cross(up).normalize();
+        if (perpA.lengthSqr() < 0.01) {
+            perpA = bladeDir.cross(new Vec3(1, 0, 0)).normalize();
+        }
+        Vec3 perpB = bladeDir.cross(perpA).normalize();
+        
+        double wrapRadius = 0.05; // Tight around the blade surface
+        
+        // === LONGITUDINAL ARCS - Run along the blade length ===
+        for (int i = 0; i < count; i++) {
+            // Start and end at different points along the blade
+            double t1 = Math.random() * 0.4;
+            double t2 = 0.6 + Math.random() * 0.4;
             
-            prevX = currentX;
-            prevY = currentY;
-            prevZ = currentZ;
+            // Random angle around the blade circumference
+            double angle = Math.random() * Math.PI * 2;
+            double offsetX = perpA.x * Math.cos(angle) * wrapRadius + perpB.x * Math.sin(angle) * wrapRadius;
+            double offsetY = perpA.y * Math.cos(angle) * wrapRadius + perpB.y * Math.sin(angle) * wrapRadius;
+            double offsetZ = perpA.z * Math.cos(angle) * wrapRadius + perpB.z * Math.sin(angle) * wrapRadius;
+            
+            double startX = baseX + bladeX * t1 + offsetX;
+            double startY = baseY + bladeY * t1 + offsetY;
+            double startZ = baseZ + bladeZ * t1 + offsetZ;
+            
+            double endX = baseX + bladeX * t2 + offsetX;
+            double endY = baseY + bladeY * t2 + offsetY;
+            double endZ = baseZ + bladeZ * t2 + offsetZ;
+            
+            LightningArcEntity.spawnArcBetween(
+                    serverLevel,
+                    new Vec3(startX, startY, startZ),
+                    new Vec3(endX, endY, endZ),
+                    KIBA_LIGHTNING_COLOR,
+                    12, // Persistent glow
+                    0.012f // Thin arcs for coating effect
+            );
+        }
+        
+        // === SPIRAL/WRAPPING ARCS - Wrap around the blade circumference ===
+        for (int i = 0; i < count + 2; i++) {
+            // Position along the blade
+            double t = 0.1 + Math.random() * 0.8;
+            
+            // Start angle and end angle (partial wrap around blade)
+            double startAngle = Math.random() * Math.PI * 2;
+            double endAngle = startAngle + Math.PI * (0.5 + Math.random() * 1.0); // 90-270 degree wrap
+            
+            double startOffsetX = perpA.x * Math.cos(startAngle) * wrapRadius + perpB.x * Math.sin(startAngle) * wrapRadius;
+            double startOffsetY = perpA.y * Math.cos(startAngle) * wrapRadius + perpB.y * Math.sin(startAngle) * wrapRadius;
+            double startOffsetZ = perpA.z * Math.cos(startAngle) * wrapRadius + perpB.z * Math.sin(startAngle) * wrapRadius;
+            
+            double endOffsetX = perpA.x * Math.cos(endAngle) * wrapRadius + perpB.x * Math.sin(endAngle) * wrapRadius;
+            double endOffsetY = perpA.y * Math.cos(endAngle) * wrapRadius + perpB.y * Math.sin(endAngle) * wrapRadius;
+            double endOffsetZ = perpA.z * Math.cos(endAngle) * wrapRadius + perpB.z * Math.sin(endAngle) * wrapRadius;
+            
+            // Slight movement along blade as it wraps
+            double tShift = 0.05 + Math.random() * 0.1;
+            
+            double startX = baseX + bladeX * t + startOffsetX;
+            double startY = baseY + bladeY * t + startOffsetY;
+            double startZ = baseZ + bladeZ * t + startOffsetZ;
+            
+            double endX = baseX + bladeX * (t + tShift) + endOffsetX;
+            double endY = baseY + bladeY * (t + tShift) + endOffsetY;
+            double endZ = baseZ + bladeZ * (t + tShift) + endOffsetZ;
+            
+            LightningArcEntity.spawnArcBetween(
+                    serverLevel,
+                    new Vec3(startX, startY, startZ),
+                    new Vec3(endX, endY, endZ),
+                    KIBA_LIGHTNING_COLOR,
+                    10, // Slightly shorter for variety
+                    0.010f // Very thin for wrapping effect
+            );
+        }
+        
+        // === TIP CORONA - Small arcs emanating from the sword tip ===
+        for (int i = 0; i < 2; i++) {
+            double angle = Math.random() * Math.PI * 2;
+            double pitch = (Math.random() - 0.5) * Math.PI * 0.3;
+            double length = 0.08 + Math.random() * 0.12;
+            
+            double endX = tipX + Math.cos(angle) * Math.cos(pitch) * length;
+            double endY = tipY + Math.sin(pitch) * length + 0.02;
+            double endZ = tipZ + Math.sin(angle) * Math.cos(pitch) * length;
+            
+            LightningArcEntity.spawnArcBetween(
+                    serverLevel,
+                    new Vec3(tipX, tipY, tipZ),
+                    new Vec3(endX, endY, endZ),
+                    KIBA_LIGHTNING_COLOR,
+                    8,
+                    0.015f
+            );
         }
     }
     
     /**
-     * Spawns electric shock particles wrapping around a stunned entity.
+     * Spawns electric shock effect on a stunned entity using lightning arc entities.
      * Creates lightning bolts that arc across the target's body.
      */
     public static void spawnElectricShockParticles(ServerLevel serverLevel, LivingEntity target) {
@@ -282,8 +371,15 @@ public class Kiba extends SwordItem implements Vanishable {
             double endY = centerY + endHeight;
             double endZ = centerZ + Math.sin(endAngle) * radius;
             
-            // Spawn the bolt
-            spawnLightningBolt(serverLevel, startX, startY, startZ, endX, endY, endZ, 5);
+            // Spawn lightning arc entity
+            LightningArcEntity.spawnArcBetween(
+                    serverLevel,
+                    new Vec3(startX, startY, startZ),
+                    new Vec3(endX, endY, endZ),
+                    KIBA_LIGHTNING_COLOR,
+                    4, // Slightly longer duration for shock effect
+                    0.015f
+            );
         }
         
         // Add some vertical bolts running up/down
@@ -292,7 +388,14 @@ public class Kiba extends SwordItem implements Vanishable {
             double x = centerX + Math.cos(angle) * radius * 0.3;
             double z = centerZ + Math.sin(angle) * radius * 0.3;
             
-            spawnLightningBolt(serverLevel, x, centerY, z, x + (Math.random() - 0.5) * 0.3, centerY + height, z + (Math.random() - 0.5) * 0.3, 4);
+            LightningArcEntity.spawnArcBetween(
+                    serverLevel,
+                    new Vec3(x, centerY, z),
+                    new Vec3(x + (Math.random() - 0.5) * 0.3, centerY + height, z + (Math.random() - 0.5) * 0.3),
+                    KIBA_LIGHTNING_COLOR,
+                    4,
+                    0.012f
+            );
         }
     }
 }

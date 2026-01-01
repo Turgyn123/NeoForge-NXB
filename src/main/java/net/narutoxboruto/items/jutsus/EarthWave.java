@@ -1,15 +1,12 @@
 package net.narutoxboruto.items.jutsus;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -21,7 +18,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -30,27 +26,27 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Earth Wave Jutsu - Creates a wave of earth that travels outward from the caster,
+ * Earth Wave Jutsu - Creates a circular wave of earth that expands outward from the caster,
  * launching blocks and entities into the air with consistent height.
  * 
  * Features:
- * - Wave travels in the direction player is facing
+ * - Circular wave expands in all directions around player
  * - All blocks launch to same height (consistent wave)
  * - Consistent damage across the entire wave
  * - Applies Slowness I for 5 seconds on hit
  * - Entities are launched high for additional fall damage
+ * - No target required - just right click to activate
  */
 @EventBusSubscriber(modid = "narutoxboruto")
 public class EarthWave extends AbstractJutsuItem {
     
     private static final int CHAKRA_COST = 5;
     private static final int COOLDOWN_TICKS = 40; // 2 seconds
-    private static final int MAX_DISTANCE = 8;
-    private static final int WAVE_WIDTH = 5; // Width of the wave (blocks on each side)
+    private static final int MAX_DISTANCE = 5; // Smaller radius for circular wave
     private static final float DAMAGE = 6.0f; // Consistent damage
     private static final double KNOCKUP = 1.2; // High launch for fall damage
     private static final int SLOWNESS_DURATION = 100; // 5 seconds
-    private static final int TICKS_PER_ROW = 4; // Ticks between each row (4 ticks = 0.2 sec)
+    private static final int TICKS_PER_RING = 4; // Ticks between each ring (4 ticks = 0.2 sec)
     
     // Track active waves - processed by tick event
     private static final Queue<WaveData> ACTIVE_WAVES = new ConcurrentLinkedQueue<>();
@@ -94,14 +90,11 @@ public class EarthWave extends AbstractJutsuItem {
         }
         
         // Create wave data and add to queue for processing
-        Vec3 lookVec = player.getViewVector(1.0F);
-        double facingAngle = Math.atan2(lookVec.z, lookVec.x);
-        
-        WaveData wave = new WaveData(serverLevel, player, origin, facingAngle);
+        // No direction needed - wave expands in a circle
+        WaveData wave = new WaveData(serverLevel, player, origin);
         ACTIVE_WAVES.add(wave);
         
-        // Play initial rumble sound
-        level.playSound(null, origin, SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 1.0f, 0.5f);
+        // No sound effect - wave is silent
         
         return true;
     }
@@ -118,14 +111,14 @@ public class EarthWave extends AbstractJutsuItem {
             WaveData wave = iterator.next();
             wave.tickCounter++;
             
-            // Check if it's time to process the next row
-            if (wave.tickCounter >= TICKS_PER_ROW) {
+            // Check if it's time to process the next ring
+            if (wave.tickCounter >= TICKS_PER_RING) {
                 wave.tickCounter = 0;
                 wave.currentDistance++;
                 
                 if (wave.currentDistance <= MAX_DISTANCE) {
-                    // Process this row
-                    processWaveRow(wave.level, wave.player, wave.origin, wave.facingAngle, wave.currentDistance);
+                    // Process this ring
+                    processWaveRing(wave.level, wave.player, wave.origin, wave.currentDistance);
                 } else {
                     // Wave complete, remove from queue
                     iterator.remove();
@@ -134,89 +127,65 @@ public class EarthWave extends AbstractJutsuItem {
         }
     }
     
-    private static void processWaveRow(ServerLevel level, ServerPlayer player, BlockPos origin, double facingAngle, int distance) {
+    /**
+     * Process a circular ring of the wave at the given distance from origin.
+     */
+    private static void processWaveRing(ServerLevel level, ServerPlayer player, BlockPos origin, int distance) {
         Set<BlockPos> affectedPositions = new HashSet<>();
         
-        // Get the forward direction vector (normalized to unit length)
-        double forwardX = Math.cos(facingAngle);
-        double forwardZ = Math.sin(facingAngle);
+        // Calculate points around the circle at this distance
+        // Use enough points to cover all blocks at this radius
+        int numPoints = Math.max(8, distance * 8); // More points for larger rings
         
-        // Get the perpendicular direction (for wave width)
-        double perpX = -forwardZ; // Rotate 90 degrees
-        double perpZ = forwardX;
-        
-        // Calculate the center point of this wave row
-        int centerX = origin.getX() + (int) Math.round(forwardX * distance);
-        int centerZ = origin.getZ() + (int) Math.round(forwardZ * distance);
-        
-        // Iterate across the wave width
-        for (int offset = -WAVE_WIDTH; offset <= WAVE_WIDTH; offset++) {
-            int blockX = centerX + (int) Math.round(perpX * offset);
-            int blockZ = centerZ + (int) Math.round(perpZ * offset);
+        for (int i = 0; i < numPoints; i++) {
+            double angle = (2 * Math.PI * i) / numPoints;
             
-            // Search for ground at this X,Z position (check a few Y levels to find the surface)
-            for (int yOffset = -2; yOffset <= 2; yOffset++) {
-                BlockPos checkPos = new BlockPos(blockX, origin.getY() + yOffset, blockZ);
+            int blockX = origin.getX() + (int) Math.round(Math.cos(angle) * distance);
+            int blockZ = origin.getZ() + (int) Math.round(Math.sin(angle) * distance);
+            
+            // Only check the exact Y level where the wave was activated
+            BlockPos checkPos = new BlockPos(blockX, origin.getY(), blockZ);
+            
+            if (affectedPositions.contains(checkPos)) continue;
+            
+            BlockState state = level.getBlockState(checkPos);
+            BlockState aboveState = level.getBlockState(checkPos.above());
+            
+            // Check if this is a valid ground block (solid block with air above)
+            if (!state.isAir() && state.isSolidRender(level, checkPos) && aboveState.isAir()) {
+                affectedPositions.add(checkPos);
                 
-                if (affectedPositions.contains(checkPos)) continue;
-                
-                BlockState state = level.getBlockState(checkPos);
-                BlockState aboveState = level.getBlockState(checkPos.above());
-                
-                // Check if this is a valid ground block (solid block with air above)
-                if (!state.isAir() && state.isSolidRender(level, checkPos) && aboveState.isAir()) {
-                    affectedPositions.add(checkPos);
-                    
-                    // Create the rising block effect
-                    if (isNaturalBlock(level, checkPos)) {
-                        createRisingBlock(level, checkPos);
-                    }
-                    
-                    // Spawn particles
-                    level.sendParticles(
-                            ParticleTypes.CLOUD,
-                            checkPos.getX() + 0.5, checkPos.getY() + 1, checkPos.getZ() + 0.5,
-                            5, 0.3, 0.2, 0.3, 0.05
-                    );
-                    
-                    // Play sound for this block
-                    if (offset == 0) { // Only center block plays sound to avoid spam
-                        level.playSound(null, checkPos, SoundEvents.GRAVEL_BREAK, SoundSource.BLOCKS, 0.5f, 0.7f);
-                    }
-                    
-                    break; // Found the surface at this X,Z, move to next offset
+                // Create the rising block effect
+                if (isNaturalBlock(level, checkPos)) {
+                    createRisingBlock(level, checkPos);
                 }
             }
         }
         
-        // Handle entity damage and knockup in this row
+        // Handle entity damage and knockup in this ring
+        // Create a ring-shaped search area
         AABB searchBox = new AABB(
-                centerX - WAVE_WIDTH - 1, origin.getY() - 1, centerZ - WAVE_WIDTH - 1,
-                centerX + WAVE_WIDTH + 2, origin.getY() + 4, centerZ + WAVE_WIDTH + 2
+                origin.getX() - distance - 1, origin.getY() - 1, origin.getZ() - distance - 1,
+                origin.getX() + distance + 2, origin.getY() + 4, origin.getZ() + distance + 2
         );
         
         List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, searchBox);
         entities.remove(player);
         
         for (LivingEntity entity : entities) {
-            // Simple distance check from the wave line
-            double entityDx = entity.getX() - centerX;
-            double entityDz = entity.getZ() - centerZ;
+            // Check if entity is roughly on this ring (within 1.5 blocks of the ring distance)
+            double entityDx = entity.getX() - origin.getX();
+            double entityDz = entity.getZ() - origin.getZ();
+            double entityDistance = Math.sqrt(entityDx * entityDx + entityDz * entityDz);
             
-            // Check if entity is roughly on this wave row
-            double forwardDist = entityDx * forwardX + entityDz * forwardZ;
-            double perpDist = Math.abs(entityDx * perpX + entityDz * perpZ);
-            
-            if (Math.abs(forwardDist) <= 1.5 && perpDist <= WAVE_WIDTH + 1) {
+            if (Math.abs(entityDistance - distance) <= 1.5) {
                 // Apply consistent damage
                 entity.hurt(level.damageSources().magic(), DAMAGE);
                 
-                // Apply high knockup - straight up with slight forward push
-                entity.setDeltaMovement(
-                        forwardX * 0.3,
-                        KNOCKUP,
-                        forwardZ * 0.3
-                );
+                // Apply knockup - straight up with slight outward push
+                double pushX = entityDx / Math.max(entityDistance, 0.1) * 0.3;
+                double pushZ = entityDz / Math.max(entityDistance, 0.1) * 0.3;
+                entity.setDeltaMovement(pushX, KNOCKUP, pushZ);
                 entity.hurtMarked = true;
                 
                 // Apply Slowness I for 5 seconds
@@ -229,9 +198,7 @@ public class EarthWave extends AbstractJutsuItem {
             }
         }
         
-        // Play wave sound for each row
-        level.playSound(null, centerX, origin.getY(), centerZ, 
-                SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.3f, 0.6f + (distance * 0.03f));
+        // No sound effect for wave rings
     }
     
     private static boolean isNaturalBlock(Level level, BlockPos pos) {
@@ -328,15 +295,13 @@ public class EarthWave extends AbstractJutsuItem {
         final ServerLevel level;
         final ServerPlayer player;
         final BlockPos origin;
-        final double facingAngle;
         int currentDistance = 0;
         int tickCounter = 0;
         
-        WaveData(ServerLevel level, ServerPlayer player, BlockPos origin, double facingAngle) {
+        WaveData(ServerLevel level, ServerPlayer player, BlockPos origin) {
             this.level = level;
             this.player = player;
             this.origin = origin;
-            this.facingAngle = facingAngle;
         }
     }
 }

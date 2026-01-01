@@ -132,9 +132,6 @@ public class Kabutowari extends AbstractAbilitySword {
         
         int currentTick = player.getServer().getTickCount();
         
-        // Play initial slam sound (reduced volume)
-        level.playSound(null, origin, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.6f, 0.5f);
-        
         // Process origin point instantly (distance 0)
         processEarthquakeRow(serverLevel, player, origin, facingAngle, 0);
         

@@ -10,7 +10,8 @@
   "client": [
     "MixinLocalPlayer",
     "MixinPlayerModel",
-    "MixinPlayerRenderer"
+    "MixinPlayerRenderer",
+    "client.MixinItemRenderer"
   ],
   "injectors": {
     "defaultRequire": 1

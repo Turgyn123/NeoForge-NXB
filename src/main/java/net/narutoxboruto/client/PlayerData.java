@@ -19,6 +19,11 @@ public class PlayerData {
     private static boolean chakraControlActive = false;
     private static boolean kibaActive = false;
     private static boolean lightningChakraModeActive = false;
+    
+    // Activation burst timing - tracks when abilities were just activated for flashy effect
+    private static long kibaActivationTime = 0;
+    private static long cloakActivationTime = 0;
+    private static final long ACTIVATION_BURST_DURATION_MS = 500; // Half second burst
 
     public static int getChakra() {
         return chakra;
@@ -41,7 +46,15 @@ public class PlayerData {
     }
 
     public static void setKibaActive(boolean active) {
+        // Detect activation (false -> true) to trigger burst
+        if (active && !kibaActive) {
+            kibaActivationTime = System.currentTimeMillis();
+        }
         kibaActive = active;
+    }
+    
+    public static boolean isKibaBurstActive() {
+        return kibaActive && (System.currentTimeMillis() - kibaActivationTime) < ACTIVATION_BURST_DURATION_MS;
     }
 
     public static boolean isLightningChakraModeActive() {
@@ -49,7 +62,15 @@ public class PlayerData {
     }
 
     public static void setLightningChakraModeActive(boolean active) {
+        // Detect activation (false -> true) to trigger burst
+        if (active && !lightningChakraModeActive) {
+            cloakActivationTime = System.currentTimeMillis();
+        }
         lightningChakraModeActive = active;
+    }
+    
+    public static boolean isCloakBurstActive() {
+        return lightningChakraModeActive && (System.currentTimeMillis() - cloakActivationTime) < ACTIVATION_BURST_DURATION_MS;
     }
 
     public static int getMaxChakra() {
