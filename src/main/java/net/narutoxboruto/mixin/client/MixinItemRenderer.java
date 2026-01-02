@@ -44,7 +44,10 @@ public class MixinItemRenderer {
     private static long narutoxboruto$lastArcGenTime = 0;
     
     @Unique
-    private static final long ARC_INTERVAL_MS = 80; // Halved frequency (was 40)
+    private static boolean narutoxboruto$isFirstPerson = false;
+    
+    @Unique
+    private static final long ARC_INTERVAL_MS = 120; // Reduced frequency (was 80)
     
     @Unique
     private static final long BURST_ARC_INTERVAL_MS = 15; // Fast interval during activation burst
@@ -90,10 +93,10 @@ public class MixinItemRenderer {
         poseStack.pushPose();
         
         // Apply different offsets for first person vs third person
-        boolean isFirstPerson = displayContext == ItemDisplayContext.FIRST_PERSON_LEFT_HAND || 
+        narutoxboruto$isFirstPerson = displayContext == ItemDisplayContext.FIRST_PERSON_LEFT_HAND || 
                                 displayContext == ItemDisplayContext.FIRST_PERSON_RIGHT_HAND;
         
-        if (isFirstPerson) {
+        if (narutoxboruto$isFirstPerson) {
             // First person - rotate back ~10 degrees to match the upright sword model
             poseStack.translate(-0.5f, -0.15f, -0.4f);
             poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(10.0f));
@@ -239,9 +242,18 @@ public class MixinItemRenderer {
             float x = Float.intBitsToFloat(data[offset]);
             float y = Float.intBitsToFloat(data[offset + 1]);
             float z = Float.intBitsToFloat(data[offset + 2]);
-            // Only include vertices in the top 3/4 (blade) to avoid hilt lightning
-            if (y > 0.25f) {
-                vertices.add(new Vector3f(x, y, z));
+            // Different clamps for first person (stricter to avoid hilt) vs third person (looser to reach hilt)
+            // First person: Y > 0.25 (avoid hilt), Third person: Y > 0.0 (reach full blade with offset)
+            float clampThreshold = narutoxboruto$isFirstPerson ? 0.25f : 0.0f;
+            // Y offset and tilt only for third person to align with blade tip
+            if (y > clampThreshold) {
+                if (narutoxboruto$isFirstPerson) {
+                    vertices.add(new Vector3f(x, y, z));
+                } else {
+                    // Third person: Add Y offset of 0.25 and 1 degree tilt
+                    float tiltOffset = y * 0.0175f;
+                    vertices.add(new Vector3f(x + tiltOffset, y + 0.25f, z));
+                }
             }
         }
     }
