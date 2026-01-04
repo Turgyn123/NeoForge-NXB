@@ -165,12 +165,6 @@ public class Kabutowari extends AbstractAbilitySword {
             BlockPos groundPos = findGroundLevel(level, origin, origin.getY());
             if (groundPos != null) {
                 affectedPositions.add(groundPos);
-                // Origin block gets particles but doesn't launch (it's where they slammed)
-                level.sendParticles(
-                        ParticleTypes.EXPLOSION,
-                        groundPos.getX() + 0.5, groundPos.getY() + 1, groundPos.getZ() + 0.5,
-                        1, 0.2, 0.1, 0.2, 0.0
-                );
             }
         } else {
             // Calculate positions along the V-cone at this distance
@@ -196,13 +190,6 @@ public class Kabutowari extends AbstractAbilitySword {
                     if (isNaturalBlock(level, groundPos) && !hasBlockAbove) {
                         createRisingBlock(level, groundPos, heightMultiplier, distance);
                     }
-                    
-                    // Spawn particles
-                    level.sendParticles(
-                            ParticleTypes.CLOUD,
-                            groundPos.getX() + 0.5, groundPos.getY() + 1, groundPos.getZ() + 0.5,
-                            2, 0.2, 0.1, 0.2, 0.02
-                    );
                 }
             }
         }

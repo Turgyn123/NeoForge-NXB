@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @EventBusSubscriber(modid = "narutoxboruto")
 public class EarthWave extends AbstractJutsuItem {
     
-    private static final int CHAKRA_COST = 5;
+    private static final int CHAKRA_COST = 10;
     private static final int COOLDOWN_TICKS = 40; // 2 seconds
     private static final int MAX_DISTANCE = 5; // Smaller radius for circular wave
     private static final float DAMAGE = 6.0f; // Consistent damage

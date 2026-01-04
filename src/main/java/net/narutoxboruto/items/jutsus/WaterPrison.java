@@ -49,7 +49,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @EventBusSubscriber(modid = "narutoxboruto")
 public class WaterPrison extends AbstractJutsuItem {
     
-    private static final int CHAKRA_COST = 15;
+    private static final int CHAKRA_COST = 25;
     private static final int COOLDOWN_TICKS = 200; // 10 seconds
     private static final int PRISON_DURATION_TICKS = 200; // 10 seconds
     private static final int MAX_PRISONS_PER_PLAYER = 1;

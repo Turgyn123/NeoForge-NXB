@@ -30,7 +30,7 @@ public class FireBall extends AbstractJutsuItem {
 
     @Override
     public int getChakraCost() {
-        return 5;
+        return 20;
     }
 
     @Override

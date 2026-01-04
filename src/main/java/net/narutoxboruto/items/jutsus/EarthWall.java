@@ -45,7 +45,7 @@ public class EarthWall extends AbstractJutsuItem {
 
     @Override
     public int getChakraCost() {
-        return 5;
+        return 15;
     }
 
     @Override
