@@ -13,6 +13,7 @@ import net.narutoxboruto.attachments.jutsus.JutsuStorage;
 import net.narutoxboruto.items.jutsus.AbstractJutsuItem;
 import net.narutoxboruto.items.jutsus.LightningChakraMode;
 import net.narutoxboruto.menu.JutsuStorageMenu;
+import net.narutoxboruto.util.ClanItemHelper;
 import net.narutoxboruto.util.JutsuGrantHelper;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -25,7 +26,7 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import java.util.Iterator;
 
 /**
- * Event handlers to ensure jutsu items are permanently bound to the player.
+ * Event handlers to ensure jutsu items and clan items are permanently bound to the player.
  * 
  * Rules:
  * 1. Cannot be dropped/tossed from inventory (Q key)
@@ -37,11 +38,12 @@ import java.util.Iterator;
 public class JutsuItemEvents {
 
     /**
-     * Check if an item is a jutsu item that should be protected from dropping/trading.
+     * Check if an item is a jutsu item or clan item that should be protected from dropping/trading.
      */
     private static boolean isProtectedJutsuItem(ItemStack stack) {
         return stack.getItem() instanceof AbstractJutsuItem || 
-               stack.getItem() instanceof LightningChakraMode;
+               stack.getItem() instanceof LightningChakraMode ||
+               ClanItemHelper.isClanItem(stack);
     }
 
     /**
@@ -141,6 +143,7 @@ public class JutsuItemEvents {
     /**
      * Periodic check to ensure any jutsu items that somehow escaped
      * are returned to jutsu storage, and verify missing jutsus are restored.
+     * Also ensures clan items (like Fuma Shuriken) are present when they should be.
      */
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
@@ -152,6 +155,8 @@ public class JutsuItemEvents {
         // This handles cases where jutsus were put in creative storage/deleted
         if (player.tickCount % 40 == 0) {
             JutsuGrantHelper.verifyAndRestoreMissingJutsus(player, true);
+            // Also check for clan items
+            ClanItemHelper.ensureFumaClanItemPresent(player);
         }
         
         // If player has a container open (other than jutsu storage), check every tick

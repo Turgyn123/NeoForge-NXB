@@ -47,12 +47,15 @@ public class ModPacketHandler {
         registrar.playToClient(SyncChakraControl.TYPE, SyncChakraControl.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncKibaActive.TYPE, SyncKibaActive.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncLightningChakraModeActive.TYPE, SyncLightningChakraModeActive.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        // DISABLED - Wall running postponed to a future update
+        // registrar.playToClient(SyncWallRunning.TYPE, SyncWallRunning.STREAM_CODEC, SyncWallRunning::handle);
 
         //Serverbound packets
         registrar.playToServer(ToggleSwordAbility.TYPE, ToggleSwordAbility.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(RechargeChakra.TYPE, RechargeChakra.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToClient(SyncNarutoRun.TYPE, SyncNarutoRun.STREAM_CODEC, (payload, context) -> payload.handle(context));
         registrar.playToServer(ToggleChakraControl.TYPE, ToggleChakraControl.STREAM_CODEC, (payload, context) -> payload.handle(context));
+        registrar.playToServer(SpecialThrowPacket.TYPE, SpecialThrowPacket.STREAM_CODEC, (payload, context) -> payload.handle(context));
         
         // Jutsu Storage packets
         registrar.playToClient(SyncJutsuStorage.TYPE, SyncJutsuStorage.STREAM_CODEC, (payload, context) -> payload.handle(context));

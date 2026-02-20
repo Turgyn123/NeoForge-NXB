@@ -47,6 +47,9 @@ public class ClanReroll extends Item {
 
             giveClanStatBonuses(serverPlayer);
 
+            // Ensure current chakra doesn't exceed new max chakra
+            capChakraToMax(serverPlayer);
+
             // SYNC ALL STATS TO CLIENT
             syncAllStatsToClient(serverPlayer);
 

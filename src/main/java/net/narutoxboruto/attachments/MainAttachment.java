@@ -6,7 +6,9 @@ import net.narutoxboruto.attachments.modes.ChakraControl;
 import net.narutoxboruto.attachments.modes.KibaActive;
 import net.narutoxboruto.attachments.modes.LightningChakraModeActive;
 import net.narutoxboruto.attachments.modes.NarutoRun;
+import net.narutoxboruto.attachments.modes.WallRunning;
 import net.narutoxboruto.attachments.stats.*;
+import net.narutoxboruto.attachments.climber.ClimberComponent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -47,6 +49,8 @@ public class MainAttachment {
     public static final Supplier<AttachmentType<KibaActive>> KIBA_ACTIVE = ATTACHMENT_TYPES.register("kiba_active", () -> AttachmentType.<KibaActive>builder(() -> new KibaActive()).serialize(KibaActive.CODEC).build());
     public static final Supplier<AttachmentType<LightningChakraModeActive>> LIGHTNING_CHAKRA_MODE_ACTIVE = ATTACHMENT_TYPES.register("lightning_chakra_mode_active", () -> AttachmentType.<LightningChakraModeActive>builder(() -> new LightningChakraModeActive()).serialize(LightningChakraModeActive.CODEC).build());
     public static final Supplier<AttachmentType<JutsuStorage>> JUTSU_STORAGE = ATTACHMENT_TYPES.register("jutsu_storage", () -> AttachmentType.<JutsuStorage>builder(() -> new JutsuStorage()).serialize(JutsuStorage.CODEC).copyOnDeath().build());
+    public static final Supplier<AttachmentType<WallRunning>> WALL_RUNNING = ATTACHMENT_TYPES.register("wall_running", () -> AttachmentType.<WallRunning>builder(() -> new WallRunning()).serialize(WallRunning.CODEC).build());
+    public static final Supplier<AttachmentType<ClimberComponent>> CLIMBER = ATTACHMENT_TYPES.register("climber", () -> AttachmentType.<ClimberComponent>builder(() -> new ClimberComponent()).build());
 
     public static void register(IEventBus modEventBus) {
         ATTACHMENT_TYPES.register(modEventBus);

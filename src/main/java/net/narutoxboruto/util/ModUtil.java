@@ -52,12 +52,70 @@ public class ModUtil {
     public static final List<String> RELEASES_LIST = Arrays.asList("earth", "fire", "lightning", "water", "wind",
             "yang", "yin");
 
+    /**
+     * Get the chakra growth multiplier for a player based on their clan.
+     * Uzumaki clan gets 3x multiplier (15 per point instead of 5).
+     * @param serverPlayer The player to check
+     * @return The multiplier (1 for normal, 3 for Uzumaki)
+     */
+    public static int getChakraGrowthMultiplier(ServerPlayer serverPlayer) {
+        String clan = serverPlayer.getData(MainAttachment.CLAN).getValue();
+        return "uzumaki".equals(clan) ? 3 : 1;
+    }
+
+    /**
+     * Ensures current chakra doesn't exceed max chakra.
+     * Call this after any operation that might change max chakra.
+     * @param serverPlayer The player to cap chakra for
+     */
+    public static void capChakraToMax(ServerPlayer serverPlayer) {
+        var maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
+        var currentChakra = serverPlayer.getData(MainAttachment.CHAKRA.get());
+        
+        if (currentChakra.getValue() > maxChakra.getValue()) {
+            currentChakra.setValue(maxChakra.getValue());
+            currentChakra.syncValue(serverPlayer);
+        }
+    }
+
+    /**
+     * Recalculates max chakra when switching to/from Uzumaki clan.
+     * @param serverPlayer The player whose chakra needs recalculation
+     * @param leavingUzumaki True if leaving Uzumaki (reduce), false if joining (increase)
+     */
+    private static void recalculateMaxChakraForClanChange(ServerPlayer serverPlayer, boolean leavingUzumaki) {
+        int ninjutsuValue = serverPlayer.getData(MainAttachment.NINJUTSU).getValue();
+        
+        // Calculate the chakra difference: Uzumaki gets 15 per point, normal gets 5 per point
+        // So the difference is 10 per point
+        int chakraDifference = ninjutsuValue * 10;
+        
+        if (chakraDifference > 0) {
+            var maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
+            var currentChakra = serverPlayer.getData(MainAttachment.CHAKRA.get());
+            
+            if (leavingUzumaki) {
+                // Leaving Uzumaki: reduce max chakra
+                maxChakra.subValue(chakraDifference, serverPlayer);
+                // Adjust current chakra if it exceeds new max
+                if (currentChakra.getValue() > maxChakra.getValue()) {
+                    currentChakra.setValue(maxChakra.getValue());
+                }
+            } else {
+                // Joining Uzumaki: increase max chakra
+                maxChakra.addValue(chakraDifference, serverPlayer);
+            }
+        }
+    }
+
     public static void giveClanStatBonuses(ServerPlayer serverPlayer) {
         String clan = serverPlayer.getData(MainAttachment.CLAN).getValue();
 
         switch (clan) {
             case "fuma" -> {
                 serverPlayer.getData(MainAttachment.SHURIKENJUTSU).incrementValue(25, serverPlayer);
+                // Give permanent Fuma Shuriken to Fuma clan members
+                ClanItemHelper.giveFumaClanItem(serverPlayer);
             }
             case "nara" -> {
                 serverPlayer.getData(MainAttachment.NINJUTSU).incrementValue(15, serverPlayer);
@@ -76,12 +134,24 @@ public class ModUtil {
                 serverPlayer.getData(MainAttachment.NINJUTSU).incrementValue(15, serverPlayer);
                 serverPlayer.getData(MainAttachment.MEDICAL).incrementValue(10, serverPlayer);
                 serverPlayer.getData(MainAttachment.KENJUTSU).incrementValue(5, serverPlayer);
+                // After giving stat bonuses, recalculate max chakra with Uzumaki multiplier
+                recalculateMaxChakraForClanChange(serverPlayer, false);
             }
         }
     }
 
     public static void removeClanStatBonuses(ServerPlayer serverPlayer) {
         String clan = serverPlayer.getData(MainAttachment.CLAN).getValue();
+
+        // If leaving Uzumaki clan, recalculate max chakra with normal multiplier
+        if ("uzumaki".equals(clan)) {
+            recalculateMaxChakraForClanChange(serverPlayer, true);
+        }
+        
+        // If leaving Fuma clan, remove the permanent Fuma Shuriken
+        if ("fuma".equals(clan)) {
+            ClanItemHelper.removeClanItems(serverPlayer);
+        }
 
         switch (clan) {
             case "fuma" -> {

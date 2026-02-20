@@ -19,11 +19,18 @@ import net.narutoxboruto.attachments.stats.Shurikenjutsu;
 import net.narutoxboruto.entities.throwables.*;
 import net.narutoxboruto.items.PreventSlow;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ThrowableWeaponItem extends Item implements PreventSlow {
     private final String name;
+    
+    // Track special throw cooldowns per player (server-side)
+    private static final Map<UUID, Long> specialThrowCooldowns = new HashMap<>();
+    private static final long SPECIAL_THROW_COOLDOWN_MS = 2000; // 2 seconds
 
     public ThrowableWeaponItem(Properties props, String name) {
         super(props);
@@ -101,6 +108,44 @@ public class ThrowableWeaponItem extends Item implements PreventSlow {
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
         return UseAnim.SPEAR;
+    }
+
+    /**
+     * Called from SpecialThrowPacket to perform the special throw ability
+     */
+    public void performSpecialThrow(ServerPlayer serverPlayer, ItemStack stack) {
+        UUID playerUUID = serverPlayer.getUUID();
+        long currentTime = System.currentTimeMillis();
+        
+        // Check if special throw is on cooldown
+        Long lastUseTime = specialThrowCooldowns.get(playerUUID);
+        if (lastUseTime != null && (currentTime - lastUseTime) < SPECIAL_THROW_COOLDOWN_MS) {
+            return; // Still on cooldown
+        }
+        
+        // Check if player has enough items
+        if (!serverPlayer.getAbilities().instabuild && stack.getCount() < 3) {
+            return; // Not enough items
+        }
+        
+        // Throw 3 projectiles with slight angle spread for visual effect
+        float angleSpread = 2.0f; // Degrees between projectiles
+        throwWeapon(serverPlayer.level(), serverPlayer, stack, 1.0f, -angleSpread);
+        throwWeapon(serverPlayer.level(), serverPlayer, stack, 1.0f, 0f);
+        throwWeapon(serverPlayer.level(), serverPlayer, stack, 1.0f, angleSpread);
+        
+        // Consume 3 items (unless creative mode)
+        if (!serverPlayer.getAbilities().instabuild) {
+            stack.shrink(3);
+        }
+        
+        // Set cooldown time (only affects special throw, not normal throws)
+        specialThrowCooldowns.put(playerUUID, currentTime);
+        
+        // Clean up old entries to prevent memory leak
+        specialThrowCooldowns.entrySet().removeIf(entry -> 
+            (currentTime - entry.getValue()) > SPECIAL_THROW_COOLDOWN_MS * 2
+        );
     }
 
     public boolean canSpecialThrow(ServerPlayer serverPlayer, ItemStack stack) {

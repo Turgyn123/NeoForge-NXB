@@ -52,9 +52,11 @@ public class JutsuGrantHelper {
                     new ItemStack(ModItems.EARTH_WAVE_JUTSU.get()), "Earth Wave");
                 return; // Already handled
             case "water":
-                jutsuToGrant = new ItemStack(ModItems.WATER_PRISON_JUTSU.get());
-                jutsuName = "Water Prison";
-                break;
+                grantMultipleJutsus(serverPlayer, storage,
+                    new ItemStack(ModItems.WATER_PRISON_JUTSU.get()), "Water Prison",
+                    new ItemStack(ModItems.SHARK_BOMB_JUTSU.get()), "Shark Bomb",
+                    new ItemStack(ModItems.WATER_DRAGON_JUTSU.get()), "Water Dragon");
+                return; // Already handled
             case "lightning":
                 jutsuToGrant = new ItemStack(ModItems.LIGHTNING_CHAKRA_MODE.get());
                 jutsuName = "Lightning Chakra Mode";
@@ -82,7 +84,7 @@ public class JutsuGrantHelper {
     }
     
     /**
-     * Helper method to grant multiple jutsus for a single release.
+     * Helper method to grant multiple jutsus for a single release (2 jutsus).
      */
     private static void grantMultipleJutsus(ServerPlayer serverPlayer, JutsuStorage storage, 
             ItemStack jutsu1, String name1, ItemStack jutsu2, String name2) {
@@ -94,21 +96,38 @@ public class JutsuGrantHelper {
             storage.syncToClient(serverPlayer);
         }
         
-        if (granted1) {
-            serverPlayer.sendSystemMessage(
-                Component.literal("You mastered ")
-                    .withStyle(ChatFormatting.GREEN)
-                    .append(Component.literal(name1).withStyle(ChatFormatting.GOLD))
-                    .append(Component.literal(", (Press ").withStyle(ChatFormatting.GREEN))
-                    .append(Component.literal("Z").withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(")").withStyle(ChatFormatting.GREEN))
-            );
+        sendMasteryMessage(serverPlayer, name1, granted1);
+        sendMasteryMessage(serverPlayer, name2, granted2);
+    }
+    
+    /**
+     * Helper method to grant multiple jutsus for a single release (3 jutsus).
+     */
+    private static void grantMultipleJutsus(ServerPlayer serverPlayer, JutsuStorage storage, 
+            ItemStack jutsu1, String name1, ItemStack jutsu2, String name2, ItemStack jutsu3, String name3) {
+        boolean granted1 = storage.addJutsuIfNotOwned(jutsu1, serverPlayer);
+        boolean granted2 = storage.addJutsuIfNotOwned(jutsu2, serverPlayer);
+        boolean granted3 = storage.addJutsuIfNotOwned(jutsu3, serverPlayer);
+        
+        if (granted1 || granted2 || granted3) {
+            serverPlayer.setData(MainAttachment.JUTSU_STORAGE, storage);
+            storage.syncToClient(serverPlayer);
         }
-        if (granted2) {
+        
+        sendMasteryMessage(serverPlayer, name1, granted1);
+        sendMasteryMessage(serverPlayer, name2, granted2);
+        sendMasteryMessage(serverPlayer, name3, granted3);
+    }
+    
+    /**
+     * Send the mastery message for a jutsu if it was granted.
+     */
+    private static void sendMasteryMessage(ServerPlayer serverPlayer, String jutsuName, boolean granted) {
+        if (granted) {
             serverPlayer.sendSystemMessage(
                 Component.literal("You mastered ")
                     .withStyle(ChatFormatting.GREEN)
-                    .append(Component.literal(name2).withStyle(ChatFormatting.GOLD))
+                    .append(Component.literal(jutsuName).withStyle(ChatFormatting.GOLD))
                     .append(Component.literal(", (Press ").withStyle(ChatFormatting.GREEN))
                     .append(Component.literal("Z").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(")").withStyle(ChatFormatting.GREEN))

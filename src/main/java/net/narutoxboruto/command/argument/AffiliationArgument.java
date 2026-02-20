@@ -24,8 +24,7 @@ public class AffiliationArgument implements ArgumentType<String> {
 
     public static String getAffiliation(CommandContext<CommandSourceStack> pContext, String pName) throws CommandSyntaxException {
         String argument = pContext.getArgument(pName, String.class);
-        System.out.println("DEBUG: Checking affiliation: " + argument);
-        System.out.println("DEBUG: Available affiliations: " + ModUtil.AFF_LIST);
+
         if (!ModUtil.AFF_LIST.contains(argument)) {
             throw ERROR_AFF_INVALID.create(argument);
         }
@@ -36,13 +35,12 @@ public class AffiliationArgument implements ArgumentType<String> {
 
     public String parse(StringReader pReader) {
         String result = pReader.readUnquotedString();
-        System.out.println("DEBUG: Parsed affiliation: " + result);
+
         return result;
     }
 
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> pContext, SuggestionsBuilder pBuilder) {
-        System.out.println("DEBUG: Generating suggestions for: " + pBuilder.getRemaining());
-        System.out.println("DEBUG: Available suggestions: " + ModUtil.AFF_LIST);
+
         return SharedSuggestionProvider.suggest(ModUtil.AFF_LIST, pBuilder);
     }
 }

@@ -9,6 +9,8 @@ import net.narutoxboruto.items.jutsus.EarthWall;
 import net.narutoxboruto.items.jutsus.EarthWave;
 import net.narutoxboruto.items.jutsus.FireBall;
 import net.narutoxboruto.items.jutsus.LightningChakraMode;
+import net.narutoxboruto.items.jutsus.SharkBomb;
+import net.narutoxboruto.items.jutsus.WaterDragon;
 import net.narutoxboruto.items.jutsus.WaterPrison;
 import net.narutoxboruto.items.misc.ChakraPaper;
 import net.narutoxboruto.items.misc.ClanReroll;
@@ -77,6 +79,8 @@ public class ModItems {
 
     //JUTSU ITEMS
     public static final DeferredItem<Item> FIRE_BALL_JUTSU = ITEMS.register("fire_ball_jutsu", () -> new FireBall(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> SHARK_BOMB_JUTSU = ITEMS.register("shark_bomb_jutsu", () -> new SharkBomb(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> WATER_DRAGON_JUTSU = ITEMS.register("water_dragon_jutsu", () -> new WaterDragon(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<Item> EARTH_WALL_JUTSU = ITEMS.register("earth_wall_jutsu", () -> new EarthWall(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<Item> EARTH_WAVE_JUTSU = ITEMS.register("earth_wave_jutsu", () -> new EarthWave(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<Item> WATER_PRISON_JUTSU = ITEMS.register("water_prison_jutsu", () -> new WaterPrison(new Item.Properties().stacksTo(1)));

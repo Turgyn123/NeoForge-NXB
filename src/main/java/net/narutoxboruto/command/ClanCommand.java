@@ -16,6 +16,7 @@ import net.narutoxboruto.util.ModUtil;
 import java.util.Collection;
 
 import static net.narutoxboruto.events.AttachmentEvents.syncAllStatsToClient;
+import static net.narutoxboruto.util.ModUtil.capChakraToMax;
 import static net.narutoxboruto.util.ModUtil.giveClanStatBonuses;
 import static net.narutoxboruto.util.ModUtil.removeClanStatBonuses;
 
@@ -44,6 +45,9 @@ public class ClanCommand {
 
             // Apply new clan bonuses
             giveClanStatBonuses(player);
+
+            // Ensure current chakra doesn't exceed new max chakra
+            capChakraToMax(player);
 
             // Sync all stats to client
             syncAllStatsToClient(player);

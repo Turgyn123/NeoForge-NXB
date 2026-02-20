@@ -4,6 +4,8 @@ import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.narutoxboruto.client.gui.JutsuStorageScreen;
 import net.narutoxboruto.client.model.FireBallModel;
 import net.narutoxboruto.client.renderer.entity.*;
+import net.narutoxboruto.client.renderer.entity.SharkBombRenderer;
+import net.narutoxboruto.client.renderer.entity.WaterDragonRenderer;
 import net.narutoxboruto.client.renderer.item.KibaClientExtension;
 import net.narutoxboruto.client.renderer.shinobi.AbstractShinobiRender;
 import net.narutoxboruto.entities.ModEntities;
@@ -71,6 +73,8 @@ public class MainClient {
             EntityRenderers.register(ModEntities.SENBON.get(), SenbonRenderer::new);
             EntityRenderers.register(ModEntities.FUMA_SHURIKEN.get(), FumaShurikenRenderer::new);
             EntityRenderers.register(ModEntities.FIRE_BALL.get(), FireBallRenderer::new);
+            EntityRenderers.register(ModEntities.SHARK_BOMB.get(), SharkBombRenderer::new);
+            EntityRenderers.register(ModEntities.WATER_DRAGON.get(), WaterDragonRenderer::new);
             EntityRenderers.register(ModEntities.LIGHTNING_ARC.get(), LightningArcRenderer::new);
 
             EntityRenderers.register(ModEntities.JINPACHI_MUNASHI.get(),

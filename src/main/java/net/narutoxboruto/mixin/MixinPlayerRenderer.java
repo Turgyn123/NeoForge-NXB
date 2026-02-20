@@ -10,17 +10,19 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+/**
+ * Mixin to adjust player model for special poses.
+ */
 @Mixin(PlayerRenderer.class)
 public class MixinPlayerRenderer {
 
-    @Inject(method = "setupRotations", at = @At("TAIL"),
-            locals = LocalCapture.CAPTURE_FAILHARD)
-
-    private void onSetupRotations(AbstractClientPlayer player, PoseStack poseStack, float ageInTicks, float rotationYaw, float partialTicks, float unusedFloat, CallbackInfo ci) { // Added the missing float parameter
+    @Inject(method = "setupRotations", at = @At("TAIL"))
+    private void onSetupRotations(AbstractClientPlayer player, PoseStack poseStack, 
+            float ageInTicks, float rotationYaw, float partialTicks, float scale, CallbackInfo ci) {
+        
+        // Handle Naruto Run pose
         NarutoRun narutoRun = player.getData(MainAttachment.NARUTO_RUN.get());
-
         if (narutoRun != null && narutoRun.isActive()) {
             poseStack.translate(0, 0.2, 1);
             poseStack.mulPose(Axis.XP.rotation(-0.7854F));

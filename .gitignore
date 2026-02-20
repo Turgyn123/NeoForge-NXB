@@ -27,3 +27,8 @@ repo
 
 # Personal folder (not committed)
 Tyler/
+
+# IDE folders
+.eclipse
+.vscode
+.github

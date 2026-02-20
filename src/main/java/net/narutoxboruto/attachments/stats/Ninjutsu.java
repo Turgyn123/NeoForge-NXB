@@ -7,6 +7,7 @@ import net.narutoxboruto.attachments.info.Chakra;
 import net.narutoxboruto.attachments.info.MaxChakra;
 import net.narutoxboruto.networking.ModPacketHandler;
 import net.narutoxboruto.networking.stats.SyncNinjutsu;
+import net.narutoxboruto.util.ModUtil;
 
 public class Ninjutsu {
 
@@ -37,10 +38,11 @@ public class Ninjutsu {
         // Calculate how many new points were actually added
         int actualAdd = this.value - oldValue;
 
-        // For every 1 point in ninjutsu, add 5 to max chakra
+        // For every 1 point in ninjutsu, add 5 to max chakra (15 for Uzumaki clan)
         if (actualAdd > 0) {
             MaxChakra maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
-            maxChakra.addValue(actualAdd * 5, serverPlayer);
+            int multiplier = ModUtil.getChakraGrowthMultiplier(serverPlayer);
+            maxChakra.addValue(actualAdd * 5 * multiplier, serverPlayer);
         }
         this.syncValue(serverPlayer);
     }
@@ -52,10 +54,11 @@ public class Ninjutsu {
         // Calculate how many new points were actually added
         int actualAdd = this.value - oldValue;
 
-        // For every 1 point in ninjutsu, add 5 to max chakra
+        // For every 1 point in ninjutsu, add 5 to max chakra (15 for Uzumaki clan)
         if (actualAdd > 0) {
             MaxChakra maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
-            maxChakra.addValue(actualAdd * 5, serverPlayer);
+            int multiplier = ModUtil.getChakraGrowthMultiplier(serverPlayer);
+            maxChakra.addValue(actualAdd * 5 * multiplier, serverPlayer);
         }
         this.syncValue(serverPlayer);
     }
@@ -67,10 +70,11 @@ public class Ninjutsu {
         // Calculate how many new points were actually added
         int actualAdd = this.value - oldValue;
 
-        // For every 1 point in ninjutsu, add 2 to max chakra
+        // For every 1 point in ninjutsu, add 5 to max chakra (15 for Uzumaki clan)
         if (actualAdd > 0) {
             MaxChakra maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
-            maxChakra.addValue(actualAdd * 5, serverPlayer);
+            int multiplier = ModUtil.getChakraGrowthMultiplier(serverPlayer);
+            maxChakra.addValue(actualAdd * 5 * multiplier, serverPlayer);
         }
         this.syncValue(serverPlayer);
     }
@@ -86,10 +90,11 @@ public class Ninjutsu {
         // Calculate how many points were removed
         int pointsRemoved = oldValue - this.value;
 
-        // Reduce max chakra when ninjutsu points are lost
+        // Reduce max chakra when ninjutsu points are lost (accounts for clan multiplier)
         if (pointsRemoved > 0) {
             MaxChakra maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
-            maxChakra.subValue(pointsRemoved * 5, serverPlayer);
+            int multiplier = ModUtil.getChakraGrowthMultiplier(serverPlayer);
+            maxChakra.subValue(pointsRemoved * 5 * multiplier, serverPlayer);
         }
     }
 
@@ -100,10 +105,11 @@ public class Ninjutsu {
         // Calculate how many new points were actually added
         int actualAdd = this.value - oldValue;
 
-        // For every 1 point in ninjutsu, add 5 to max chakra
+        // For every 1 point in ninjutsu, add 5 to max chakra (15 for Uzumaki clan)
         if (actualAdd > 0) {
             MaxChakra maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
-            maxChakra.addValue(actualAdd * 5, serverPlayer);
+            int multiplier = ModUtil.getChakraGrowthMultiplier(serverPlayer);
+            maxChakra.addValue(actualAdd * 5 * multiplier, serverPlayer);
         }
 
         this.syncValue(serverPlayer);
@@ -119,7 +125,8 @@ public class Ninjutsu {
         // If points were removed, we might want to reduce max chakra
         if (pointsRemoved < 0) {
             MaxChakra maxChakra = serverPlayer.getData(MainAttachment.MAX_CHAKRA.get());
-            maxChakra.subValue(Math.abs(pointsRemoved) * 5, serverPlayer);
+            int multiplier = ModUtil.getChakraGrowthMultiplier(serverPlayer);
+            maxChakra.subValue(Math.abs(pointsRemoved) * 5 * multiplier, serverPlayer);
             adjustCurrentChakra(serverPlayer);
 
         }

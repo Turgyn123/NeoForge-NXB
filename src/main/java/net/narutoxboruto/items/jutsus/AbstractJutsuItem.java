@@ -108,9 +108,8 @@ public abstract class AbstractJutsuItem extends Item {
             // Apply cooldown
             serverPlayer.getCooldowns().addCooldown(this, getCooldownTicks());
             
-            // Play success sound
-            level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.5F, 1.0F);
+            // Play success sound (subclasses can override to silence)
+            playCastSound(level, player);
             
             return InteractionResultHolder.consume(stack);
         } else {
@@ -147,6 +146,15 @@ public abstract class AbstractJutsuItem extends Item {
      */
     public boolean isJutsuItem() {
         return true;
+    }
+    
+    /**
+     * Play a sound when the jutsu is successfully cast.
+     * Override and leave empty to silence for specific jutsus.
+     */
+    protected void playCastSound(Level level, Player player) {
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+            SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.5F, 1.0F);
     }
     
     private String capitalize(String s) {

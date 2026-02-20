@@ -8,10 +8,18 @@
     "MixinPlayer"
   ],
   "client": [
+    "MixinGameRenderer",
     "MixinLocalPlayer",
     "MixinPlayerModel",
     "MixinPlayerRenderer",
     "client.MixinItemRenderer"
+  ],
+  "_disabled_wall_running_mixins": [
+    "MixinEntity",
+    "MixinLivingEntityClimbing",
+    "MixinCamera",
+    "MixinEntityRenderDispatcher",
+    "MixinLivingEntityTravel"
   ],
   "injectors": {
     "defaultRequire": 1

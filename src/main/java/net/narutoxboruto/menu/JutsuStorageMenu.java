@@ -98,7 +98,8 @@ public class JutsuStorageMenu extends AbstractContainerMenu {
                 }
             } else {
                 // Clicking in player inventory - move to storage (only if it's a jutsu item)
-                if (stackInSlot.getItem() instanceof AbstractJutsuItem) {
+                if (stackInSlot.getItem() instanceof AbstractJutsuItem
+                        || stackInSlot.getItem() instanceof LightningChakraMode) {
                     if (!this.moveItemStackTo(stackInSlot, 0, STORAGE_SIZE, false)) {
                         return ItemStack.EMPTY;
                     }
