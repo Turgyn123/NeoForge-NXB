@@ -3,8 +3,6 @@ package net.narutoxboruto.entities.jutsus;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
@@ -36,15 +34,11 @@ import java.util.List;
 /**
  * Shark Bomb Projectile - Water Release Jutsu
  * 
- * - Launches immediately on cast, grows from tiny (0.1x) to full size (1.0x) over 3 seconds of flight
+ * - Launches immediately on cast at full size
  * - Strong homing behavior, re-acquires targets every tick, passes through non-target entities
  * - Impact: AOE water damage + explosion effect + temporary water blocks
  */
 public class SharkBombEntity extends Projectile implements GeoEntity {
-    
-    /** Synched scale for client-side rendering during charge-up */
-    private static final EntityDataAccessor<Float> ENTITY_SCALE = 
-        SynchedEntityData.defineId(SharkBombEntity.class, EntityDataSerializers.FLOAT);
     
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     
@@ -56,7 +50,6 @@ public class SharkBombEntity extends Projectile implements GeoEntity {
     private static final float DAMAGE = 16.0F;         // Direct hit damage
     private static final float AOE_DAMAGE = 8.0F;      // AOE splash damage at center
     private static final float SPEED = 0.8F;            // Flight speed (blocks/tick)
-    private static final int GROW_TICKS = 60;           // 3s to grow from tiny to full size during flight
     private static final int MAX_FLIGHT_TICKS = 120;    // 6s max flight
     private static final double MAX_RANGE = 50.0;       // Max travel distance from launch point
     private static final double HOMING_RANGE = 50.0;    // Target detection range
@@ -78,9 +71,6 @@ public class SharkBombEntity extends Projectile implements GeoEntity {
         this.setPos(spawnPos.x, spawnPos.y, spawnPos.z);
         this.startPos = this.position();
         
-        // Start very small, grows during flight
-        this.entityData.set(ENTITY_SCALE, 0.1f);
-        
         // Find target and launch immediately (no charge phase)
         if (shooter instanceof Player player) {
             this.targetEntity = findBestTarget(player);
@@ -95,9 +85,9 @@ public class SharkBombEntity extends Projectile implements GeoEntity {
         }
         this.setDeltaMovement(launchDir.scale(SPEED));
         
-        // Face the launch direction
+        // Face the launch direction (negate atan2 to match MC yaw convention)
         double horizDist = launchDir.horizontalDistance();
-        this.setYRot((float)(Mth.atan2(launchDir.x, launchDir.z) * (180.0 / Math.PI)));
+        this.setYRot(-(float)(Mth.atan2(launchDir.x, launchDir.z) * (180.0 / Math.PI)));
         this.setXRot((float)(Mth.atan2(launchDir.y, horizDist) * (180.0 / Math.PI)));
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
@@ -105,12 +95,7 @@ public class SharkBombEntity extends Projectile implements GeoEntity {
     
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(ENTITY_SCALE, 1.0f);
-    }
-    
-    /** Get the current visual scale (0.2 during start of charge, 1.0 at full size) */
-    public float getEntityScale() {
-        return this.entityData.get(ENTITY_SCALE);
+        // No additional synced data needed
     }
     
     @Override
@@ -135,14 +120,6 @@ public class SharkBombEntity extends Projectile implements GeoEntity {
             return;
         }
         
-        // Grow during flight (0.1 -> 1.0 over GROW_TICKS)
-        if (this.age <= GROW_TICKS) {
-            float scale = 0.1f + 0.9f * ((float) this.age / (float) GROW_TICKS);
-            this.entityData.set(ENTITY_SCALE, Math.min(scale, 1.0f));
-        } else if (this.getEntityScale() < 1.0f) {
-            this.entityData.set(ENTITY_SCALE, 1.0f);
-        }
-        
         // Homing behavior - re-target every tick
         updateHoming();
         
@@ -157,21 +134,11 @@ public class SharkBombEntity extends Projectile implements GeoEntity {
         Vec3 velocity = this.getDeltaMovement();
         this.setPos(this.getX() + velocity.x, this.getY() + velocity.y, this.getZ() + velocity.z);
         
-        // Update rotation from velocity (only when moving - prevents snap to 0 on sync delay)
+        // Update rotation from velocity (negate atan2 to match MC yaw convention)
         double horizSpeed = velocity.horizontalDistance();
         if (horizSpeed > 0.001) {
-            this.setYRot((float)(Mth.atan2(velocity.x, velocity.z) * (180.0 / Math.PI)));
+            this.setYRot(-(float)(Mth.atan2(velocity.x, velocity.z) * (180.0 / Math.PI)));
             this.setXRot((float)(Mth.atan2(velocity.y, horizSpeed) * (180.0 / Math.PI)));
-        }
-        
-        // Flight particles - water drops trailing behind
-        if (this.level() instanceof ServerLevel sl) {
-            sl.sendParticles(ParticleTypes.FALLING_WATER,
-                this.getX(), this.getY(), this.getZ(),
-                50, 0.4, 0.4, 0.4, 0.1);
-            sl.sendParticles(ParticleTypes.SPLASH,
-                this.getX(), this.getY(), this.getZ(),
-                50, 0.3, 0.3, 0.3, 0.05);
         }
     }
     

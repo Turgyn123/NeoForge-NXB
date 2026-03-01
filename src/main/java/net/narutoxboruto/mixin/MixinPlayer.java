@@ -128,7 +128,7 @@ public abstract class MixinPlayer extends LivingEntity implements ModeHandler {
     }
 
     @Override
-    protected void playStepSound(BlockPos pPos, BlockState pState) {
+    public void playStepSound(BlockPos pPos, BlockState pState) {
         if (this.canStandOnFluid(pState.getFluidState())) {
             SoundType soundtype = pState.getSoundType(level(), pPos, this);
             soundtype.getPitch();

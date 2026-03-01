@@ -34,13 +34,16 @@ import java.util.List;
 /**
  * Water Dragon Projectile - Powerful Water Release Jutsu
  * 
- * - Phase 1 (Rising): Spawns below ground, rises vertically while facing straight up.
- *   Spawn animation plays, base stays near ground while head emerges skyward.
- * - Phase 2 (Hovering): Smoothly transitions from vertical to horizontal ("straightens out"),
- *   rotating to face the target. Dramatic buildup moment.
- * - Phase 3 (Flight): Launches toward target at high speed in a straight line.
+ * Three distinct phases, each with its own animation:
+ * 
+ * - Phase 1 (Rising): Spawns below ground, rises vertically.
+ *   "Spawn" animation unfurls the dragon as it emerges.
+ * - Phase 2 (Idle): Hovers in place, rotates yaw toward target.
+ *   "Idle" animation loops with gentle swaying.
+ * - Phase 3 (Attack): "Attack" animation straightens the dragon from vertical
+ *   to horizontal via per-bone rotations (no global pitch distortion).
+ *   After the animation completes, the dragon launches toward the target.
  * - Impact: Massive AOE explosion + water damage + temporary water blocks.
- * - Rendered at 5x scale for an imposing visual.
  */
 public class WaterDragonEntity extends Projectile implements GeoEntity {
     
@@ -48,20 +51,23 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
     
     private int age = 0;
     private boolean launched = false;
-    private Vec3 launchDir = null;     // Direction to launch, calculated during hover
+    private Vec3 launchDir = null;     // Direction to launch, calculated during idle/attack
     private Vec3 startPos;             // Set when launched, for range check
     private double yOrigin = Double.MIN_VALUE; // Y position when spawned (set on first tick)
     private boolean yOriginInitialized = false;
+    private LivingEntity lockedTarget = null;  // Target locked on when entering idle phase
     
-    // === Configuration (inspired by reference mod values) ===
-    private static final float DAMAGE = 20.0F;          // Direct hit damage (devastating)
-    private static final float AOE_DAMAGE = 10.0F;      // AOE splash damage at center
-    private static final float SPEED = 0.5F;             // Fast but visible flight speed
-    private static final int RISE_TICKS = 40;            // 2s rising phase (longer for drama)
-    private static final int HOVER_TICKS = 20;           // 1s hovering phase
-    private static final int WINDUP_TICKS = RISE_TICKS + HOVER_TICKS; // 3s total windup
+    // === Configuration ===
+    private static final float DAMAGE = 20.0F;          // Direct hit damage
+    private static final float AOE_DAMAGE = 10.0F;      // AOE splash damage
+    private static final float SPEED = 0.5F;             // Flight speed
+    private static final int RISE_TICKS = 40;            // 2s rising phase
+    private static final int IDLE_TICKS = 30;            // 1.5s idle/hover phase
+    private static final int ATTACK_ANIM_TICKS = 20;     // 1s attack animation (straighten)
+    private static final int PHASE2_END = RISE_TICKS + IDLE_TICKS;           // tick 70
+    private static final int PHASE3_END = PHASE2_END + ATTACK_ANIM_TICKS;    // tick 90
     private static final int MAX_FLIGHT_TICKS = 60;      // ~3s flight after launch
-    private static final int MAX_TOTAL_TICKS = 130;      // ~6.5s total lifetime
+    private static final int MAX_TOTAL_TICKS = 160;      // ~8s total lifetime
     private static final double MAX_RANGE = 50.0;        // Max travel distance after launch
     private static final float AOE_RADIUS = 4.0F;        // Large splash radius
     private static final float EXPLOSION_POWER = 5.0F;   // Massive visual explosion
@@ -71,6 +77,7 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
     public WaterDragonEntity(EntityType<? extends WaterDragonEntity> entityType, Level level) {
         super(entityType, level);
         this.noPhysics = true; // No collision during windup
+        this.noCulling = true; // Prevent frustum culling — 5x scaled model extends far beyond the small entity hitbox
     }
     
     public WaterDragonEntity(Level level, LivingEntity shooter) {
@@ -119,8 +126,8 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         }
         
         // ==================== PHASE 1: RISING ====================
-        // Rise vertically from below ground, facing straight up
-        // Spawn animation plays while pitch is constant - no animation fighting
+        // Rise vertically from below ground. Spawn animation unfurls the dragon.
+        // Only yaw is set (facing shooter direction). No pitch.
         if (this.age <= RISE_TICKS) {
             // Initialize yOrigin on first tick if not set (fixes client-side sync)
             if (!this.yOriginInitialized) {
@@ -132,70 +139,65 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
             double riseSpeed = RISE_HEIGHT / (double) RISE_TICKS;
             double newY = this.yOrigin + (riseSpeed * this.age);
             this.setPos(this.getX(), newY, this.getZ());
-            
-            // Face straight up during rise - stable rotation prevents "bent" look
-            this.setXRot(90.0f);
-            // Keep yRot as initialized (shooter's direction) - don't change it
-            
-            // Rising water wake particles (increasing density)
-            if (this.level() instanceof ServerLevel sl) {
-                int particleCount = this.age * 5; // Gets denser over time
-                sl.sendParticles(ParticleTypes.SPLASH,
-                    this.getX(), this.getY(), this.getZ(),
-                    particleCount, 0.5, 0.3, 0.5, 0.05);
-            }
             return;
         }
         
-        // ==================== PHASE 2: HOVERING ====================
-        // Straighten out from vertical (up) to horizontal (toward target)
-        if (this.age <= WINDUP_TICKS) {
+        // ==================== PHASE 2: IDLE / HOVERING ====================
+        // On first idle tick, lock onto the nearest enemy to the player's crosshair.
+        // After locking, track the locked target — ignore crosshair changes.
+        if (this.age <= PHASE2_END) {
             // Stay at the risen position
             double hoverY = this.yOrigin + RISE_HEIGHT;
             this.setPos(this.getX(), hoverY, this.getZ());
             
-            // Calculate target direction for launch
-            computeLaunchDirection(owner);
-            
-            // Smoothly transition pitch from 90 (up) to target pitch (straightening out)
-            int hoverAge = this.age - RISE_TICKS;
-            float hoverProgress = Mth.clamp((float) hoverAge / (float) HOVER_TICKS, 0.0f, 1.0f);
-            
-            float targetPitch = 0.0f;
-            float targetYaw = this.getYRot();
-            if (this.launchDir != null) {
-                double horizDist = this.launchDir.horizontalDistance();
-                targetPitch = (float)(Mth.atan2(this.launchDir.y, horizDist) * (180.0 / Math.PI));
-                targetYaw = (float)(Mth.atan2(this.launchDir.x, this.launchDir.z) * (180.0 / Math.PI));
+            // Lock onto target on first idle tick
+            if (this.age == RISE_TICKS + 1) {
+                lockOnTarget(owner);
             }
             
-            // Lerp pitch from 90 (up) to target angle
-            this.setXRot(Mth.lerp(hoverProgress, 90.0f, targetPitch));
+            // Track locked target (or fall back to crosshair if none found)
+            updateLaunchDirFromTarget(owner);
             
-            // Approach yaw toward target direction
-            float yawDiff = Mth.wrapDegrees(targetYaw - this.getYRot());
-            float maxYawStep = 360.0f / (float) HOVER_TICKS;
-            this.setYRot(this.getYRot() + Mth.clamp(yawDiff, -maxYawStep, maxYawStep));
-            
-            // Heavy hovering particles
-            if (this.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.SPLASH,
-                    this.getX(), this.getY(), this.getZ(),
-                    this.age * 5, 0.5, 0.5, 0.5, 0.05);
-                sl.sendParticles(ParticleTypes.DRIPPING_WATER,
-                    this.getX(), this.getY() - 1, this.getZ(),
-                    20, 0.3, 1.0, 0.3, 0.01);
+            // Smoothly rotate yaw toward target direction
+            if (this.launchDir != null) {
+                float targetYaw = -(float)(Mth.atan2(this.launchDir.x, this.launchDir.z) * (180.0 / Math.PI));
+                float yawDiff = Mth.wrapDegrees(targetYaw - this.getYRot());
+                float maxYawStep = 360.0f / (float) IDLE_TICKS;
+                this.setYRot(this.getYRot() + Mth.clamp(yawDiff, -maxYawStep, maxYawStep));
             }
             return;
         }
         
-        // ==================== PHASE 3: LAUNCH & FLIGHT ====================
+        // ==================== PHASE 3: ATTACK ====================
+        // Attack animation plays (straightens the dragon from vertical to horizontal
+        // via per-bone rotations). During the animation, the dragon holds position.
+        // Continues tracking the locked target.
+        if (this.age <= PHASE3_END) {
+            // Hold position while attack animation plays
+            double hoverY = this.yOrigin + RISE_HEIGHT;
+            this.setPos(this.getX(), hoverY, this.getZ());
+            
+            // Continue tracking locked target
+            updateLaunchDirFromTarget(owner);
+            if (this.launchDir != null) {
+                float targetYaw = -(float)(Mth.atan2(this.launchDir.x, this.launchDir.z) * (180.0 / Math.PI));
+                float yawDiff = Mth.wrapDegrees(targetYaw - this.getYRot());
+                float maxYawStep = 360.0f / (float) ATTACK_ANIM_TICKS;
+                this.setYRot(this.getYRot() + Mth.clamp(yawDiff, -maxYawStep, maxYawStep));
+            }
+            return;
+        }
+        
+        // ==================== FLIGHT (after attack animation) ====================
+        // ==================== FLIGHT (after attack animation) ====================
         if (!this.launched) {
             this.launched = true;
             this.noPhysics = false; // Enable collision for flight
             this.startPos = this.position();
             
-            // Calculate launch direction toward target
+            // Final direction update toward locked target
+            updateLaunchDirFromTarget(owner);
+            
             if (this.launchDir != null) {
                 this.setDeltaMovement(this.launchDir.scale(SPEED));
             } else if (owner instanceof LivingEntity shooter) {
@@ -204,7 +206,7 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         }
         
         // Check max flight time / range
-        int flightAge = this.age - WINDUP_TICKS;
+        int flightAge = this.age - PHASE3_END;
         if (flightAge > MAX_FLIGHT_TICKS ||
             (this.startPos != null && this.startPos.distanceTo(this.position()) > MAX_RANGE)) {
             this.explodeWithWater();
@@ -223,66 +225,71 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         Vec3 velocity = this.getDeltaMovement();
         this.setPos(this.getX() + velocity.x, this.getY() + velocity.y, this.getZ() + velocity.z);
         
-        // Update rotation to face movement direction (only when moving)
-        double horizSpeed = velocity.horizontalDistance();
-        if (horizSpeed > 0.001) {
-            this.setYRot((float)(Mth.atan2(velocity.x, velocity.z) * (180.0 / Math.PI)));
-            this.setXRot((float)(Mth.atan2(velocity.y, horizSpeed) * (180.0 / Math.PI)));
+        // Gently home toward locked target during flight
+        if (this.lockedTarget != null && this.lockedTarget.isAlive()) {
+            Vec3 toTarget = this.lockedTarget.getEyePosition().subtract(this.position()).normalize();
+            Vec3 currentDir = velocity.normalize();
+            // Blend 10% toward target each tick for gentle homing
+            Vec3 blended = currentDir.scale(0.9).add(toTarget.scale(0.1)).normalize();
+            this.setDeltaMovement(blended.scale(SPEED));
         }
         
-        // Heavy flight particles - massive water trail (200 particles like reference)
-        if (this.level() instanceof ServerLevel sl) {
-            sl.sendParticles(ParticleTypes.FALLING_WATER,
-                this.getX(), this.getY(), this.getZ(),
-                100, 0.5, 0.5, 0.5, 0.15);
-            sl.sendParticles(ParticleTypes.SPLASH,
-                this.getX(), this.getY(), this.getZ(),
-                100, 0.5, 0.5, 0.5, 0.1);
+        // Update yaw to face movement direction
+        Vec3 vel = this.getDeltaMovement();
+        double horizSpeed = vel.horizontalDistance();
+        if (horizSpeed > 0.001) {
+            this.setYRot(-(float)(Mth.atan2(vel.x, vel.z) * (180.0 / Math.PI)));
         }
     }
     
     /**
-     * Compute the launch direction toward a target entity or the shooter's look.
-     * Only calculates launchDir, does NOT set rotation (handled by phase code).
+     * Lock onto the nearest enemy to the player's crosshair direction.
+     * Called once when entering the idle phase. After this, the dragon
+     * tracks the locked target instead of the player's crosshair.
      */
-    private void computeLaunchDirection(Entity owner) {
-        if (!(owner instanceof LivingEntity shooter)) return;
+    private void lockOnTarget(Entity owner) {
+        if (!(owner instanceof Player player)) return;
         
-        Vec3 targetPos = null;
+        List<LivingEntity> nearby = this.level().getEntitiesOfClass(
+            LivingEntity.class,
+            this.getBoundingBox().inflate(50.0),
+            e -> e != player && e.isAlive() && !e.isSpectator() && !(e instanceof Player)
+        );
         
-        if (owner instanceof Player player) {
-            List<LivingEntity> nearby = this.level().getEntitiesOfClass(
-                LivingEntity.class,
-                this.getBoundingBox().inflate(50.0),
-                e -> e != player && e.isAlive() && !e.isSpectator()
-            );
-            
-            if (!nearby.isEmpty()) {
-                Vec3 look = player.getLookAngle();
-                Vec3 eye = player.getEyePosition();
-                LivingEntity best = null;
-                double bestDot = -1;
-                
-                for (LivingEntity e : nearby) {
-                    Vec3 toE = e.position().subtract(eye).normalize();
-                    double dot = look.dot(toE);
-                    if (dot > bestDot) {
-                        bestDot = dot;
-                        best = e;
-                    }
-                }
-                
-                if (best != null && bestDot > 0.5) {
-                    targetPos = best.getEyePosition();
-                }
+        if (nearby.isEmpty()) return;
+        
+        Vec3 look = player.getLookAngle();
+        Vec3 eye = player.getEyePosition();
+        LivingEntity best = null;
+        double bestDot = -1;
+        
+        for (LivingEntity e : nearby) {
+            Vec3 toE = e.position().subtract(eye).normalize();
+            double dot = look.dot(toE);
+            if (dot > bestDot) {
+                bestDot = dot;
+                best = e;
             }
         }
         
-        if (targetPos == null) {
-            targetPos = shooter.getEyePosition().add(shooter.getLookAngle().scale(50.0));
+        // Lock on if any entity is roughly in the crosshair direction (dot > 0.3)
+        if (best != null && bestDot > 0.3) {
+            this.lockedTarget = best;
         }
-        
-        this.launchDir = targetPos.subtract(this.position()).normalize();
+    }
+    
+    /**
+     * Update launchDir toward the locked target. If no locked target
+     * (or it died), fall back to the owner's look direction.
+     */
+    private void updateLaunchDirFromTarget(Entity owner) {
+        if (this.lockedTarget != null && this.lockedTarget.isAlive()) {
+            this.launchDir = this.lockedTarget.getEyePosition().subtract(this.position()).normalize();
+        } else if (owner instanceof LivingEntity shooter) {
+            // Fallback: aim where the player is looking
+            Vec3 targetPos = shooter.getEyePosition().add(shooter.getLookAngle().scale(50.0));
+            this.launchDir = targetPos.subtract(this.position()).normalize();
+        }
     }
     
     @Override
@@ -422,19 +429,34 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         compound.putDouble("YOrigin", this.yOrigin);
     }
     
+    /**
+     * Allow rendering at extended distance since the 5x scaled model is visible
+     * from much further than the small entity hitbox would normally allow.
+     */
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        return distance < 16384.0; // Render up to 128 blocks away
+    }
+    
     // === GeckoLib Animation ===
     
-    private static final RawAnimation SPAWN_ANIM = RawAnimation.begin().thenPlay("Spawn");
+    private static final RawAnimation SPAWN_ANIM = RawAnimation.begin().thenPlayAndHold("Spawn");
     private static final RawAnimation IDLE_ANIM = RawAnimation.begin().thenLoop("Idle");
+    private static final RawAnimation ATTACK_ANIM = RawAnimation.begin().thenPlayAndHold("Attack");
     
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new AnimationController<>(this, "main_controller", 5, state -> {
-            // Play Spawn animation during rise (unfurls the dragon), then Idle for flight
+            // Phase 1 (Rise): Spawn animation unfurls dragon from coiled state.
+            // Phase 2 (Idle): Idle animation — gentle swaying while hovering.
+            // Phase 3 (Attack): Attack animation — dragon straightens from vertical
+            //   to horizontal via per-bone rotations. Holds on last frame for flight.
             if (this.age <= RISE_TICKS) {
                 return state.setAndContinue(SPAWN_ANIM);
+            } else if (this.age <= PHASE2_END) {
+                return state.setAndContinue(IDLE_ANIM);
             }
-            return state.setAndContinue(IDLE_ANIM);
+            return state.setAndContinue(ATTACK_ANIM);
         }));
     }
     
