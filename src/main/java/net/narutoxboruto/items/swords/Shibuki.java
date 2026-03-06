@@ -109,11 +109,14 @@ public class Shibuki extends AbstractAbilitySword {
 
         for (LivingEntity entity : nearbyEntities) {
             Vec3 knockbackDir = entity.position().subtract(explosionPos).normalize();
-            entity.setDeltaMovement(
-                    knockbackDir.x * 2.0,
-                    Math.min(1.5, knockbackDir.y * 2.0 + 0.5), // Upward boost but capped
-                    knockbackDir.z * 2.0
-            );
+            double dist = entity.position().distanceTo(explosionPos);
+            double falloff = Math.max(0.0, 1.0 - dist / 5.0); // Linear falloff over 5 blocks
+            double strength = 0.4 * falloff;
+            entity.setDeltaMovement(entity.getDeltaMovement().add(
+                    knockbackDir.x * strength,
+                    Math.max(0.1, knockbackDir.y * strength + 0.15) * falloff,
+                    knockbackDir.z * strength
+            ));
             entity.hurtMarked = true; // Force velocity update
         }
 

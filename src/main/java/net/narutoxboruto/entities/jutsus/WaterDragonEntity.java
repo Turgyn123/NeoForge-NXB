@@ -71,6 +71,10 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
     private static final double MAX_RANGE = 50.0;        // Max travel distance after launch
     private static final float AOE_RADIUS = 4.0F;        // Large splash radius
     private static final float EXPLOSION_POWER = 5.0F;   // Massive visual explosion
+    private static final int LAUNCH_GRACE_TICKS = 5;     // Ticks after launch to ignore block collisions
+    private static final int FLIGHT_SCAN_INTERVAL = 5;   // Re-scan for targets every N flight ticks
+    private static final double TARGET_SCAN_RANGE = 30.0; // Range for in-flight target scanning
+    private static final double TARGET_SCAN_CONE = 0.5;  // Dot product threshold for flight cone (cos ~60°)
     
     public WaterDragonEntity(EntityType<? extends WaterDragonEntity> entityType, Level level) {
         super(entityType, level);
@@ -170,7 +174,6 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         // ==================== FLIGHT (after attack animation) ====================
         if (!this.launched) {
             this.launched = true;
-            this.noPhysics = false; // Enable collision for flight
             this.startPos = this.position();
             
             // Final direction update toward locked target
@@ -183,8 +186,14 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
             }
         }
         
-        // Check max flight time / range
         int flightAge = this.age - PHASE3_END;
+        
+        // Enable block collision after grace period (avoids clipping ground at spawn)
+        if (this.noPhysics && flightAge > LAUNCH_GRACE_TICKS) {
+            this.noPhysics = false;
+        }
+        
+        // Check max flight time / range
         if (flightAge > MAX_FLIGHT_TICKS ||
             (this.startPos != null && this.startPos.distanceTo(this.position()) > MAX_RANGE)) {
             this.explodeWithWater();
@@ -192,9 +201,12 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
             return;
         }
         
-        // Hit detection
+        // Hit detection (entity hits always, block hits only after grace period)
         HitResult hitResult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
-        if (hitResult.getType() != HitResult.Type.MISS) {
+        if (hitResult.getType() == HitResult.Type.ENTITY) {
+            this.onHit(hitResult);
+            return;
+        } else if (hitResult.getType() == HitResult.Type.BLOCK && !this.noPhysics) {
             this.onHit(hitResult);
             return;
         }
@@ -203,14 +215,21 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         Vec3 velocity = this.getDeltaMovement();
         this.setPos(this.getX() + velocity.x, this.getY() + velocity.y, this.getZ() + velocity.z);
         
-        // Gently home toward locked target during flight
+        // Periodically scan for new targets during flight if none locked (or current died)
+        if ((this.lockedTarget == null || !this.lockedTarget.isAlive()) 
+                && flightAge % FLIGHT_SCAN_INTERVAL == 0) {
+            scanForFlightTarget();
+        }
+        
+        // Home toward locked target during flight
         if (this.lockedTarget != null && this.lockedTarget.isAlive()) {
             Vec3 toTarget = this.lockedTarget.getEyePosition().subtract(this.position()).normalize();
             Vec3 currentDir = velocity.normalize();
-            // Blend 10% toward target each tick for gentle homing
-            Vec3 blended = currentDir.scale(0.9).add(toTarget.scale(0.1)).normalize();
+            // Blend 15% toward target each tick for responsive homing
+            Vec3 blended = currentDir.scale(0.85).add(toTarget.scale(0.15)).normalize();
             this.setDeltaMovement(blended.scale(SPEED));
         }
+        // No target: dragon keeps flying in its current direction (launchDir)
         
         // Update yaw and pitch to face movement direction
         Vec3 vel = this.getDeltaMovement();
@@ -222,9 +241,9 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
     }
     
     /**
-     * Lock onto the nearest enemy to the player's crosshair direction.
-     * Called once when entering the idle phase. After this, the dragon
-     * tracks the locked target instead of the player's crosshair.
+     * Lock onto the best enemy near the player's crosshair direction.
+     * Scores by both alignment to look direction AND distance (closer + more aligned = better).
+     * Called once when entering the idle phase.
      */
     private void lockOnTarget(Entity owner) {
         if (!(owner instanceof Player player)) return;
@@ -240,19 +259,63 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         Vec3 look = player.getLookAngle();
         Vec3 eye = player.getEyePosition();
         LivingEntity best = null;
-        double bestDot = -1;
+        double bestScore = -1;
         
         for (LivingEntity e : nearby) {
-            Vec3 toE = e.position().subtract(eye).normalize();
-            double dot = look.dot(toE);
-            if (dot > bestDot) {
-                bestDot = dot;
+            Vec3 toE = e.position().subtract(eye);
+            double dist = toE.length();
+            if (dist < 0.5) continue; // Too close, skip
+            double dot = look.dot(toE.normalize());
+            if (dot < 0.3) continue; // Outside ~72° cone, skip
+            // Score: alignment weighted heavily, with distance penalty
+            // Closer targets get a bonus (1/dist capped), aligned targets score higher
+            double score = dot * (1.0 + 10.0 / (dist + 5.0));
+            if (score > bestScore) {
+                bestScore = score;
                 best = e;
             }
         }
         
-        // Lock on if any entity is roughly in the crosshair direction (dot > 0.3)
-        if (best != null && bestDot > 0.3) {
+        if (best != null) {
+            this.lockedTarget = best;
+        }
+    }
+    
+    /**
+     * Scan for targets during flight. Looks for enemies in a cone ahead of the dragon.
+     * If a target is found, locks onto it for homing.
+     */
+    private void scanForFlightTarget() {
+        Entity owner = this.getOwner();
+        Vec3 flyDir = this.getDeltaMovement().normalize();
+        
+        List<LivingEntity> nearby = this.level().getEntitiesOfClass(
+            LivingEntity.class,
+            this.getBoundingBox().inflate(TARGET_SCAN_RANGE),
+            e -> e != owner && e.isAlive() && !e.isSpectator()
+                && !(e instanceof Player) && e.distanceTo(this) <= TARGET_SCAN_RANGE
+        );
+        
+        if (nearby.isEmpty()) return;
+        
+        LivingEntity best = null;
+        double bestScore = -1;
+        
+        for (LivingEntity e : nearby) {
+            Vec3 toE = e.getEyePosition().subtract(this.position());
+            double dist = toE.length();
+            if (dist < 0.5) continue;
+            double dot = flyDir.dot(toE.normalize());
+            if (dot < TARGET_SCAN_CONE) continue; // Outside forward cone
+            // Prefer closer targets that are more aligned with flight path
+            double score = dot * (1.0 + 10.0 / (dist + 3.0));
+            if (score > bestScore) {
+                bestScore = score;
+                best = e;
+            }
+        }
+        
+        if (best != null) {
             this.lockedTarget = best;
         }
     }
