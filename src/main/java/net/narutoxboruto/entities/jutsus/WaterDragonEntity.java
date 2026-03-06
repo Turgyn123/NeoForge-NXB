@@ -53,49 +53,47 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
     private boolean launched = false;
     private Vec3 launchDir = null;     // Direction to launch, calculated during idle/attack
     private Vec3 startPos;             // Set when launched, for range check
-    private double yOrigin = Double.MIN_VALUE; // Y position when spawned (set on first tick)
-    private boolean yOriginInitialized = false;
     private LivingEntity lockedTarget = null;  // Target locked on when entering idle phase
     
     // === Configuration ===
     private static final float DAMAGE = 20.0F;          // Direct hit damage
     private static final float AOE_DAMAGE = 10.0F;      // AOE splash damage
     private static final float SPEED = 0.5F;             // Flight speed
-    private static final int RISE_TICKS = 40;            // 2s rising phase
-    private static final int IDLE_TICKS = 30;            // 1.5s idle/hover phase
-    private static final int ATTACK_ANIM_TICKS = 20;     // 1s attack animation (straighten)
-    private static final int PHASE2_END = RISE_TICKS + IDLE_TICKS;           // tick 70
-    private static final int PHASE3_END = PHASE2_END + ATTACK_ANIM_TICKS;    // tick 90
+    // Phase durations match bbmodel animation lengths exactly:
+    // Spawn = 1s (hold_on_last_frame), Idle = 2s (loop), Attack = 1s (hold_on_last_frame)
+    private static final int RISE_TICKS = 20;            // 1s — matches Spawn animation length
+    private static final int IDLE_TICKS = 40;            // 2s — matches one full Idle loop
+    private static final int ATTACK_ANIM_TICKS = 20;     // 1s — matches Attack animation length
+    private static final int PHASE2_END = RISE_TICKS + IDLE_TICKS;           // tick 60
+    private static final int PHASE3_END = PHASE2_END + ATTACK_ANIM_TICKS;    // tick 80
     private static final int MAX_FLIGHT_TICKS = 60;      // ~3s flight after launch
     private static final int MAX_TOTAL_TICKS = 160;      // ~8s total lifetime
     private static final double MAX_RANGE = 50.0;        // Max travel distance after launch
     private static final float AOE_RADIUS = 4.0F;        // Large splash radius
     private static final float EXPLOSION_POWER = 5.0F;   // Massive visual explosion
-    private static final double RISE_HEIGHT = 5.0;       // How many blocks to rise total
-    private static final double START_BELOW = 2.0;       // Start 2 blocks below ground for emergence
     
     public WaterDragonEntity(EntityType<? extends WaterDragonEntity> entityType, Level level) {
         super(entityType, level);
         this.noPhysics = true; // No collision during windup
-        this.noCulling = true; // Prevent frustum culling — 5x scaled model extends far beyond the small entity hitbox
+        this.noCulling = true; // Prevent frustum culling — scaled model extends far beyond the small entity hitbox
     }
     
     public WaterDragonEntity(Level level, LivingEntity shooter) {
         this(ModEntities.WATER_DRAGON.get(), level);
         this.setOwner(shooter);
         
-        // Spawn below the shooter's feet (emerges from ground)
-        this.setPos(shooter.getX(), shooter.getY() - START_BELOW, shooter.getZ());
-        this.yOrigin = shooter.getY() - START_BELOW;
-        this.yOriginInitialized = true;
+        // Spawn at the shooter's position.
+        // The Spawn animation handles the visual rise from underground
+        // (bone11 starts at y=-37px and animates to rest position over 1s).
+        this.setPos(shooter.getX(), shooter.getY(), shooter.getZ());
         
         // Face the same direction as the shooter initially
         this.setYRot(shooter.getYHeadRot());
-        this.setXRot(0); // Level pitch during rise
+        this.setXRot(0);
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
         
-        // No movement yet - will rise vertically first
+        // No movement yet
         this.setDeltaMovement(Vec3.ZERO);
     }
     
@@ -126,30 +124,16 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         }
         
         // ==================== PHASE 1: RISING ====================
-        // Rise vertically from below ground. Spawn animation unfurls the dragon.
-        // Only yaw is set (facing shooter direction). No pitch.
+        // Entity stays at spawn position. The Spawn animation handles the
+        // visual rise (bone11 starts underground and animates to rest pose).
         if (this.age <= RISE_TICKS) {
-            // Initialize yOrigin on first tick if not set (fixes client-side sync)
-            if (!this.yOriginInitialized) {
-                this.yOrigin = this.getY();
-                this.yOriginInitialized = true;
-            }
-            
-            // Rise at a constant rate to reach RISE_HEIGHT blocks above origin
-            double riseSpeed = RISE_HEIGHT / (double) RISE_TICKS;
-            double newY = this.yOrigin + (riseSpeed * this.age);
-            this.setPos(this.getX(), newY, this.getZ());
             return;
         }
         
         // ==================== PHASE 2: IDLE / HOVERING ====================
-        // On first idle tick, lock onto the nearest enemy to the player's crosshair.
-        // After locking, track the locked target — ignore crosshair changes.
+        // Lock onto nearest enemy when entering idle, then track it.
+        // Idle animation loops with gentle swaying.
         if (this.age <= PHASE2_END) {
-            // Stay at the risen position
-            double hoverY = this.yOrigin + RISE_HEIGHT;
-            this.setPos(this.getX(), hoverY, this.getZ());
-            
             // Lock onto target on first idle tick
             if (this.age == RISE_TICKS + 1) {
                 lockOnTarget(owner);
@@ -169,14 +153,9 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         }
         
         // ==================== PHASE 3: ATTACK ====================
-        // Attack animation plays (straightens the dragon from vertical to horizontal
-        // via per-bone rotations). During the animation, the dragon holds position.
-        // Continues tracking the locked target.
+        // Attack animation straightens dragon from vertical to horizontal
+        // via per-bone rotations. Entity stays in place.
         if (this.age <= PHASE3_END) {
-            // Hold position while attack animation plays
-            double hoverY = this.yOrigin + RISE_HEIGHT;
-            this.setPos(this.getX(), hoverY, this.getZ());
-            
             // Continue tracking locked target
             updateLaunchDirFromTarget(owner);
             if (this.launchDir != null) {
@@ -188,7 +167,6 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
             return;
         }
         
-        // ==================== FLIGHT (after attack animation) ====================
         // ==================== FLIGHT (after attack animation) ====================
         if (!this.launched) {
             this.launched = true;
@@ -234,11 +212,12 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
             this.setDeltaMovement(blended.scale(SPEED));
         }
         
-        // Update yaw to face movement direction
+        // Update yaw and pitch to face movement direction
         Vec3 vel = this.getDeltaMovement();
         double horizSpeed = vel.horizontalDistance();
         if (horizSpeed > 0.001) {
             this.setYRot(-(float)(Mth.atan2(vel.x, vel.z) * (180.0 / Math.PI)));
+            this.setXRot((float)(-(Mth.atan2(vel.y, horizSpeed) * (180.0 / Math.PI))));
         }
     }
     
@@ -415,10 +394,6 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         super.readAdditionalSaveData(compound);
         this.age = compound.getInt("Age");
         this.launched = compound.getBoolean("Launched");
-        if (compound.contains("YOrigin")) {
-            this.yOrigin = compound.getDouble("YOrigin");
-            this.yOriginInitialized = true;
-        }
     }
     
     @Override
@@ -426,7 +401,6 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
         super.addAdditionalSaveData(compound);
         compound.putInt("Age", this.age);
         compound.putBoolean("Launched", this.launched);
-        compound.putDouble("YOrigin", this.yOrigin);
     }
     
     /**

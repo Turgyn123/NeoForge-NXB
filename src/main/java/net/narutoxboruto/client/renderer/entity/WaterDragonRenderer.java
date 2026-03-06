@@ -45,15 +45,16 @@ public class WaterDragonRenderer extends GeoEntityRenderer<WaterDragonEntity> {
     
     /**
      * Override GeckoLib's rotation handling.
-     * Only apply yaw so the dragon faces the correct horizontal direction.
-     * No pitch — the Attack animation's per-bone rotations handle the
-     * vertical-to-horizontal transition without distorting the serpentine shape.
+     * GeckoLib passes rotationYaw=0 for non-LivingEntity (Projectile),
+     * so we apply the entity's actual yRot and xRot.
      */
     @Override
     protected void applyRotations(WaterDragonEntity entity, PoseStack poseStack, 
                                    float ageInTicks, float rotationYaw, 
                                    float partialTick, float nativeScale) {
         float yaw = Mth.rotLerp(partialTick, entity.yRotO, entity.getYRot());
+        float pitch = Mth.lerp(partialTick, entity.xRotO, entity.getXRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(180f - yaw));
+        poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
     }
 }

@@ -33,7 +33,7 @@ public class ModEntities {
     //JUTSUS
     public static final DeferredHolder<EntityType<?>, EntityType<FireBallEntity>> FIRE_BALL = registerEntity("fire_ball", FireBallEntity::new, MobCategory.MISC, 1.0F, 1.0F);
     public static final DeferredHolder<EntityType<?>, EntityType<SharkBombEntity>> SHARK_BOMB = registerEntity("shark_bomb", SharkBombEntity::new, MobCategory.MISC, 1.0F, 1.0F);
-    public static final DeferredHolder<EntityType<?>, EntityType<WaterDragonEntity>> WATER_DRAGON = registerEntity("water_dragon", WaterDragonEntity::new, MobCategory.MISC, 1.5F, 1.5F);
+    public static final DeferredHolder<EntityType<?>, EntityType<WaterDragonEntity>> WATER_DRAGON = registerEntity("water_dragon", WaterDragonEntity::new, MobCategory.MISC, 3.0F, 4.0F);
 
     //EFFECTS
     public static final DeferredHolder<EntityType<?>, EntityType<LightningArcEntity>> LIGHTNING_ARC = 
