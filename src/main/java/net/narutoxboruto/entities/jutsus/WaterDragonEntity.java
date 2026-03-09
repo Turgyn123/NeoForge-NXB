@@ -70,7 +70,7 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
     private static final int MAX_TOTAL_TICKS = 160;      // ~8s total lifetime
     private static final double MAX_RANGE = 50.0;        // Max travel distance after launch
     private static final float AOE_RADIUS = 4.0F;        // Large splash radius
-    private static final float EXPLOSION_POWER = 5.0F;   // Massive visual explosion
+    private static final float EXPLOSION_POWER = 2.0F;   // Visual explosion (no block damage)
     private static final int LAUNCH_GRACE_TICKS = 5;     // Ticks after launch to ignore block collisions
     private static final int FLIGHT_SCAN_INTERVAL = 5;   // Re-scan for targets every N flight ticks
     private static final double TARGET_SCAN_RANGE = 30.0; // Range for in-flight target scanning
@@ -359,9 +359,10 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
             living.hurt(this.damageSources().mobProjectile(this,
                 this.getOwner() instanceof LivingEntity le ? le : null), DAMAGE);
             
-            // Strong knockback
-            Vec3 knockback = this.getDeltaMovement().normalize().scale(1.5);
-            living.setDeltaMovement(living.getDeltaMovement().add(knockback));
+            // Subtle knockback in movement direction
+            Vec3 knockback = this.getDeltaMovement().normalize().scale(0.35);
+            living.setDeltaMovement(living.getDeltaMovement().add(knockback.x, 0.15, knockback.z));
+            living.hurtMarked = true;
         }
         
         // Massive explosion on impact
@@ -395,9 +396,11 @@ public class WaterDragonEntity extends Projectile implements GeoEntity {
                     nearby.hurt(this.damageSources().mobProjectile(this,
                         this.getOwner() instanceof LivingEntity le ? le : null), dmg);
                     
-                    // Strong knockback away from explosion
-                    Vec3 kb = nearby.position().subtract(this.position()).normalize().scale(1.0);
-                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(kb));
+                    // Subtle knockback away from explosion with distance falloff
+                    double falloff = 1.0 - dist / AOE_RADIUS;
+                    Vec3 kb = nearby.position().subtract(this.position()).normalize().scale(0.3 * falloff);
+                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(kb.x, 0.1 * falloff, kb.z));
+                    nearby.hurtMarked = true;
                 }
             }
         }
